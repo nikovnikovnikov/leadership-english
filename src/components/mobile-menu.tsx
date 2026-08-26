@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { href: "/board", label: "Board" },
   { href: "/events", label: "Events" },
   { href: "/courses", label: "Courses" },
+  { href: "/book", label: "Book a Lesson" },
   { href: "/members", label: "Members" },
   { href: "/about", label: "About" },
   { href: "/search", label: "Search" },
