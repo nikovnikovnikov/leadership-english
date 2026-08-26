@@ -100,3 +100,67 @@ body {
   color: var(--foreground);
   transition: background-color 0.2s ease, color 0.2s ease;
 }
+
+/* ---------------------------------------------------------------------------
+   Notion content overrides — match the app's stone/Tailwind theme
+   --------------------------------------------------------------------------- */
+
+.notion-content {
+  --notion-font-size: 15px;
+  --notion-font-family: var(--app-font-sans);
+  --notion-hue: 40;
+
+  color: var(--text-primary);
+}
+
+.notion-content .notion-page-content {
+  padding: 0;
+}
+
+.notion-content .notion-hue-0,
+.notion-content .notion-hue-1,
+.notion-content .notion-hue-2,
+.notion-content .notion-hue-3 {
+  background: transparent;
+}
+
+.notion-content .notion-callout {
+  border-radius: 0.75rem;
+  border-color: var(--border);
+  background: var(--surface-elevated);
+}
+
+.notion-content .notion-quote {
+  border-color: var(--text-muted);
+}
+
+.notion-content .notion-code {
+  background: var(--code-bg);
+  border-radius: 0.5rem;
+}
+
+.notion-content .notion-table {
+  border-color: var(--border);
+}
+
+.notion-content .notion-table-row {
+  border-color: var(--border);
+}
+
+.notion-content .notion-collection-page-properties {
+  display: none;
+}
+
+.notion-content a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.notion-content a:hover {
+  opacity: 0.85;
+}
+
+.dark .notion-content {
+  --notion-hue: 40;
+}

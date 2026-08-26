@@ -10,7 +10,9 @@ import {
   isSubscribed,
 } from "@/lib/queries";
 import { videoEmbedUrl } from "@/lib/utils";
+import { getNotionRecordMap } from "@/lib/notion";
 import { CompleteButton } from "@/components/lessons/complete-button";
+import { NotionContent } from "@/components/notion-content";
 
 export const metadata = { title: "Lesson" };
 
@@ -23,12 +25,13 @@ export default async function LessonPage({
   const lesson = await getLesson(id);
   if (!lesson || !lesson.published) notFound();
 
-  const [course, points, subscribed, completedSet, lessons] = await Promise.all([
+  const [course, points, subscribed, completedSet, lessons, notionRecordMap] = await Promise.all([
     getCourse(lesson.course_id),
     getTotalPoints(profile.id),
     isSubscribed(profile.id),
     getCompletedLessonIds(profile.id),
     getLessons(lesson.course_id),
+    lesson.notion_page_id ? getNotionRecordMap(lesson.notion_page_id) : null,
   ]);
   if (!course) notFound();
 
@@ -118,6 +121,10 @@ export default async function LessonPage({
                 {lesson.description}
               </p>
             </div>
+          )}
+
+          {notionRecordMap && (
+            <NotionContent recordMap={notionRecordMap} />
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-3">

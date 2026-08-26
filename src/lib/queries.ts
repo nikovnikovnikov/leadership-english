@@ -281,7 +281,7 @@ export async function getLessons(courseId: string) {
   const { data, error } = await supabase
     .from("lessons")
     .select(
-      "id, course_id, title, description, video_url, order_index, required_points, published",
+      "id, course_id, title, description, video_url, order_index, required_points, published, notion_page_id",
     )
     .eq("course_id", courseId)
     .eq("published", true)
@@ -297,7 +297,7 @@ export async function getLesson(id: string) {
   const { data, error } = await supabase
     .from("lessons")
     .select(
-      "id, course_id, title, description, video_url, order_index, required_points, published",
+      "id, course_id, title, description, video_url, order_index, required_points, published, notion_page_id",
     )
     .eq("id", id)
     .maybeSingle();

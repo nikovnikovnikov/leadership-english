@@ -8,6 +8,7 @@ type LessonFields = {
   title: string;
   description: string | null;
   video_url: string | null;
+  notion_page_id: string | null;
   order_index: number;
   required_points: number;
   published: boolean;
@@ -58,6 +59,20 @@ export function LessonForm({
           defaultValue={initial?.description ?? ""}
           className="w-full rounded-lg border border-stone-300 dark:border-stone-800 bg-white dark:bg-stone-900 px-3 py-2 text-sm outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20"
         />
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium">
+          Notion Page ID <span className="text-stone-400 dark:text-stone-400">(optional)</span>
+        </label>
+        <input
+          name="notion_page_id"
+          defaultValue={initial?.notion_page_id ?? ""}
+          placeholder="e.g. 1a2b3c4d5e6f..."
+          className="w-full rounded-lg border border-stone-300 dark:border-stone-800 bg-white dark:bg-stone-900 px-3 py-2 text-sm outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20"
+        />
+        <p className="mt-1 text-xs text-stone-400 dark:text-stone-500">
+          Paste a Notion page ID to render rich content (tables, callouts, toggles, etc.) below the description.
+        </p>
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div>

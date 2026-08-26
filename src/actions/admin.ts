@@ -113,6 +113,7 @@ export async function createLesson(
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
   const videoUrl = String(formData.get("video_url") ?? "").trim() || null;
+  const notionPageId = String(formData.get("notion_page_id") ?? "").trim() || null;
   const orderIndex = Number(formData.get("order_index") ?? 0) || 0;
   const requiredPoints = Number(formData.get("required_points") ?? 0) || 0;
   const published = formData.get("published") === "on";
@@ -124,6 +125,7 @@ export async function createLesson(
     title,
     description,
     video_url: videoUrl,
+    notion_page_id: notionPageId,
     order_index: orderIndex,
     required_points: requiredPoints,
     published,
@@ -144,6 +146,7 @@ export async function updateLesson(
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
   const videoUrl = String(formData.get("video_url") ?? "").trim() || null;
+  const notionPageId = String(formData.get("notion_page_id") ?? "").trim() || null;
   const orderIndex = Number(formData.get("order_index") ?? 0) || 0;
   const requiredPoints = Number(formData.get("required_points") ?? 0) || 0;
   const published = formData.get("published") === "on";
@@ -156,6 +159,7 @@ export async function updateLesson(
       title,
       description,
       video_url: videoUrl,
+      notion_page_id: notionPageId,
       order_index: orderIndex,
       required_points: requiredPoints,
       published,
