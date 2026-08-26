@@ -1,0 +1,102 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { requireAdmin } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { getAllTags } from "@/lib/queries";
+import { CourseForm } from "@/components/admin/course-form";
+import { LessonForm } from "@/components/admin/lesson-form";
+import { DeleteButton } from "@/components/delete-button";
+import { deleteCourse, deleteLesson } from "@/actions/admin";
+
+export const metadata = { title: "Manage course" };
+
+export default async function AdminCoursePage({
+  params,
+}: PageProps<"/admin/course/[id]">) {
+  const { id } = await params;
+  await requireAdmin();
+  const supabase = await createClient();
+  const tags = await getAllTags();
+
+  const { data: course } = await supabase
+    .from("courses")
+    .select("id, title, description, published, required_tag_id")
+    .eq("id", id)
+    .single();
+  if (!course) notFound();
+
+  const { data: lessons } = await supabase
+    .from("lessons")
+    .select(
+      "id, course_id, title, description, video_url, order_index, required_points, published",
+    )
+    .eq("course_id", id)
+    .order("order_index", { ascending: true });
+
+  return (
+    <div className="space-y-6">
+      <Link
+        href="/admin/courses"
+        className="text-xs font-medium text-stone-400 hover:text-stone-600 dark:text-stone-400 dark:hover:text-stone-300"
+      >
+        ← All courses
+      </Link>
+
+      <CourseForm initial={course} tags={tags} />
+
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="font-semibold">Lessons</h2>
+          <DeleteButton
+            action={deleteCourse.bind(null, course.id)}
+            confirmText="Delete this course and all its lessons?"
+          />
+        </div>
+
+        <div className="space-y-2">
+          {lessons?.map((lesson) => (
+            <div
+              key={lesson.id}
+              className="flex items-center justify-between rounded-xl border border-stone-200 bg-white p-3 shadow-sm"
+            >
+              <Link
+                href={`/admin/lesson/${lesson.id}`}
+                className="flex min-w-0 items-center gap-3"
+              >
+                <span className="w-6 text-center text-xs text-stone-400">
+                  {lesson.order_index}
+                </span>
+                <span className="truncate text-sm font-medium hover:text-[var(--primary)]">
+                  {lesson.title}
+                </span>
+                {lesson.required_points > 0 && (
+                  <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+                    {lesson.required_points} pts
+                  </span>
+                )}
+                {!lesson.published && (
+                  <span className="shrink-0 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-500">
+                    Draft
+                  </span>
+                )}
+              </Link>
+              <DeleteButton
+                action={deleteLesson.bind(null, lesson.id, course.id)}
+              />
+            </div>
+          ))}
+          {!lessons?.length && (
+            <p className="text-sm text-stone-400">
+              No lessons yet — add the first one below.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <h2 className="mb-2 font-semibold">Add a lesson</h2>
+        <LessonForm courseId={course.id} />
+      </div>
+    </div>
+  );
+}
