@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
+import { safeDbError } from "@/lib/sanitize";
 
 export type CategoryActionState = { error?: string; ok?: boolean };
 
@@ -48,7 +49,7 @@ export async function createCategory(
 
   if (error) {
     if (error.code === "23505") return { error: "A board with that name already exists." };
-    return { error: error.message };
+    return { error: safeDbError(error) };
   }
 
   revalidatePath("/admin/boards");
@@ -74,7 +75,7 @@ export async function updateCategory(
     .update({ label, description, required_tag_id: requiredTagId })
     .eq("id", id);
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   revalidatePath("/admin/boards");
   revalidatePath("/board");

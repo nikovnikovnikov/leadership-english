@@ -48,7 +48,7 @@ export function videoEmbedUrl(url: string | null | undefined): string | null {
   if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
   const ig = trimmed.match(/instagram\.com\/reel\/([A-Za-z0-9_-]+)/);
   if (ig) return `https://www.instagram.com/reel/${ig[1]}/embed/`;
-  return trimmed;
+  return null;
 }
 
 export function errorMessage(err: unknown): string {

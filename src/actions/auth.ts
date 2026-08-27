@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { sanitizeUrl, safeDbError } from "@/lib/sanitize";
 
 export type AuthState = { error?: string; ok?: boolean; message?: string };
 
@@ -14,7 +15,7 @@ export async function login(
   const password = String(formData.get("password") ?? "");
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   redirect("/feed");
 }
@@ -94,7 +95,7 @@ export async function signup(
       emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
     },
   });
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   if (!data.session) {
     return {
@@ -119,11 +120,11 @@ export async function completeSetup(
 
   const username = String(formData.get("username") ?? "").trim().toLowerCase();
   const displayName = String(formData.get("display_name") ?? "").trim();
-  const instagramUrl = String(formData.get("instagram_url") ?? "").trim() || null;
-  const substackUrl = String(formData.get("substack_url") ?? "").trim() || null;
-  const xUrl = String(formData.get("x_url") ?? "").trim() || null;
-  const youtubeUrl = String(formData.get("youtube_url") ?? "").trim() || null;
-  const customLinkUrl = String(formData.get("custom_link_url") ?? "").trim() || null;
+  const instagramUrl = sanitizeUrl(String(formData.get("instagram_url") ?? "").trim());
+  const substackUrl = sanitizeUrl(String(formData.get("substack_url") ?? "").trim());
+  const xUrl = sanitizeUrl(String(formData.get("x_url") ?? "").trim());
+  const youtubeUrl = sanitizeUrl(String(formData.get("youtube_url") ?? "").trim());
+  const customLinkUrl = sanitizeUrl(String(formData.get("custom_link_url") ?? "").trim());
   const customLinkLabel = String(formData.get("custom_link_label") ?? "").trim() || null;
 
   if (!/^[a-z0-9_]{3,20}$/.test(username))
@@ -157,7 +158,7 @@ export async function completeSetup(
     custom_link_url: customLinkUrl,
     custom_link_label: customLinkLabel,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   // Record user access type
   try {

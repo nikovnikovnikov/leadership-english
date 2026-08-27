@@ -12,6 +12,7 @@ const ALL_TABS = [
   { href: "/admin/tags", label: "Tags", adminOnly: true },
   { href: "/admin/community", label: "Community", adminOnly: true },
   { href: "/admin/settings", label: "Points", adminOnly: true },
+  { href: "/admin/waitlist", label: "Waitlist", adminOnly: true },
   { href: "/admin/members", label: "Members", adminOnly: true },
 ] as const;
 

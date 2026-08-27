@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sendDmNotification } from "@/lib/email";
+import { safeDbError } from "@/lib/sanitize";
 
 export type MessageState = { error?: string };
 
@@ -23,7 +24,7 @@ export async function startConversation(
   const { data, error } = await supabase.rpc("get_or_create_conversation", {
     p_other_user: otherUserId,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   redirect(`/messages/${data}`);
 }
@@ -68,7 +69,7 @@ export async function createGroupConversation(
     p_member_ids: memberIds,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   revalidatePath("/messages");
   redirect(`/messages/${data}`);
@@ -142,7 +143,7 @@ export async function sendMessage(
     body,
   });
 
-  if (insertError) return { error: insertError.message };
+  if (insertError) return { error: safeDbError(insertError) };
 
   // Update last_message_at
   await supabase
@@ -231,7 +232,7 @@ export async function contactAdmin(
     "get_or_create_conversation",
     { p_other_user: admin.id },
   );
-  if (convError) return { error: convError.message };
+  if (convError) return { error: safeDbError(convError) };
 
   // Send the message
   const { error: insertError } = await supabase.from("messages").insert({
@@ -239,7 +240,7 @@ export async function contactAdmin(
     sender_id: user.id,
     body,
   });
-  if (insertError) return { error: insertError.message };
+  if (insertError) return { error: safeDbError(insertError) };
 
   // Update last_message_at
   await supabase

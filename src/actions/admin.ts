@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getColorForScheme } from "@/lib/appearance";
+import { sanitizeHexColor, sanitizeUrl, safeDbError } from "@/lib/sanitize";
 
 async function requireAdminUser() {
   const supabase = await createClient();
@@ -67,7 +68,7 @@ export async function createCourse(
     .insert({ title, description, published, required_tag_id: requiredTagId })
     .select("id")
     .single();
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   revalidatePath("/admin/courses");
   redirect(`/admin/course/${data.id}`);
@@ -90,7 +91,7 @@ export async function updateCourse(
     .from("courses")
     .update({ title, description, published, required_tag_id: requiredTagId })
     .eq("id", id);
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   revalidatePath("/admin/course/[id]");
   revalidatePath("/courses");
@@ -130,7 +131,7 @@ export async function createLesson(
     required_points: requiredPoints,
     published,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   revalidatePath(`/admin/course/${courseId}`);
   return {};
@@ -165,7 +166,7 @@ export async function updateLesson(
       published,
     })
     .eq("id", id);
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   revalidatePath(`/admin/lesson/${id}`);
   revalidatePath(`/admin/course/${courseId}`);
@@ -208,11 +209,37 @@ export async function updateSettings(
   return {};
 }
 
+const ALLOWED_SETTING_KEYS = new Set([
+  "points_feed_post", "points_thread", "points_feed_comment",
+  "points_thread_reply", "points_like_received", "points_daily_cap",
+  "community_start_here", "community_about", "community_rules",
+  "announcements_enabled", "announcements_title", "announcements_body",
+  "site_name", "site_tagline", "logo_initial", "landing_heading",
+  "landing_subtext", "signup_heading", "legal_entity_name",
+  "legal_email", "legal_address", "legal_jurisdiction", "legal_courts",
+  "color_scheme", "font_pairing", "primary_color",
+  "beta_mode", "beta_max_spots", "invites_enabled", "invites_per_member",
+  "subscription_required", "stripe_price_monthly", "stripe_price_yearly",
+  "yearly_enabled", "waitlist_enabled",
+]);
+
+const URL_SETTING_KEYS = new Set([
+  "logo_initial",
+]);
+
 export async function updateSetting(key: string, value: string) {
   const supabase = await requireAdminUser();
+  if (!ALLOWED_SETTING_KEYS.has(key)) return;
+  let safeValue = value;
+  if (key === "primary_color") safeValue = sanitizeHexColor(value);
+  if (URL_SETTING_KEYS.has(key) && value) {
+    const sanitized = sanitizeUrl(value);
+    if (sanitized === null) return;
+    safeValue = sanitized;
+  }
   await supabase
     .from("settings")
-    .upsert({ key, value }, { onConflict: "key" });
+    .upsert({ key, value: safeValue }, { onConflict: "key" });
   revalidatePath("/admin/settings");
 }
 

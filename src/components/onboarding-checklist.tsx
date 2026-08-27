@@ -1,7 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+
+const DISMISS_KEY = "onboarding-dismissed";
+
+function getDismissedSnapshot() {
+  try {
+    if (localStorage.getItem(DISMISS_KEY) === "true") return true;
+  } catch {
+    /* localStorage unavailable */
+  }
+  return false;
+}
+
+function subscribe() {
+  return () => {};
+}
 
 export type OnboardingProgress = {
   hasAvatar: boolean;
@@ -70,12 +85,23 @@ export function OnboardingChecklist({
   progress: OnboardingProgress;
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [dismissedLocal, setDismissedLocal] = useState(false);
+  const persistedDismiss = useSyncExternalStore(subscribe, getDismissedSnapshot, () => false);
 
   const completed = CHECKLIST.filter((item) => isDone(item.key, progress)).length;
   const total = CHECKLIST.length;
   const allDone = completed === total;
 
-  if (allDone) return null;
+  if (allDone || dismissedLocal || persistedDismiss) return null;
+
+  function dismiss() {
+    try {
+      localStorage.setItem(DISMISS_KEY, "true");
+    } catch {
+      /* storage unavailable */
+    }
+    setDismissedLocal(true);
+  }
 
   return (
     <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-4 shadow-sm">
@@ -98,6 +124,18 @@ export function OnboardingChecklist({
               style={{ width: `${(completed / total) * 100}%` }}
             />
           </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              dismiss();
+            }}
+            className="rounded p-0.5 text-stone-400 transition hover:text-stone-600 dark:hover:text-stone-300"
+            aria-label="Dismiss"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+            </svg>
+          </button>
           <svg
             className={`h-4 w-4 text-stone-400 transition-transform ${collapsed ? "" : "rotate-180"}`}
             fill="none"

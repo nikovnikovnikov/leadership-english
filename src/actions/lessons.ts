@@ -21,7 +21,7 @@ export async function completeLesson(lessonId: string) {
   const { error } = await supabase.rpc("complete_lesson", {
     p_lesson_id: lessonId,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error("Could not complete lesson. Please try again.");
 
   revalidatePath(`/lesson/${lessonId}`);
   revalidatePath(`/course/${lesson.course_id}`);

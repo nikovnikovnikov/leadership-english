@@ -29,6 +29,7 @@ export function OnboardingConfig({ settings }: { settings: Settings }) {
   const betaMode = local.beta_mode === "true";
   const invitesEnabled = local.invites_enabled === "true";
   const subscriptionRequired = local.subscription_required === "true";
+  const waitlistEnabled = local.waitlist_enabled === "true";
 
   return (
     <div className="space-y-6">
@@ -146,6 +147,31 @@ export function OnboardingConfig({ settings }: { settings: Settings }) {
               </div>
             )}
           </div>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5 shadow-sm">
+        <h3 className="text-sm font-semibold mb-4">Waitlist</h3>
+        <p className="text-xs text-stone-500 dark:text-stone-400 mb-4">
+          Collect emails before opening access. Admins admit people from the waitlist, who then receive an invite email.
+        </p>
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={waitlistEnabled}
+            onChange={(e) => set("waitlist_enabled", String(e.target.checked))}
+            className="h-4 w-4 rounded border-stone-300 dark:border-stone-800 text-[var(--primary)] focus:ring-[var(--primary)]/20"
+          />
+          <span className="text-sm font-medium">Enable waitlist</span>
+        </label>
+        {waitlistEnabled && (
+          <p className="mt-3 text-xs text-stone-500 dark:text-stone-400">
+            The landing page will show a waitlist form instead of the normal signup button.
+            Manage the queue from the{" "}
+            <a href="/admin/waitlist" className="font-medium text-[var(--primary)] hover:underline">
+              Waitlist admin
+            </a>.
+          </p>
         )}
       </div>
 

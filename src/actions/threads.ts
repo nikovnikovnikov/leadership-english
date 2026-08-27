@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { safeDbError } from "@/lib/sanitize";
 
 export type ThreadActionState = { error?: string };
 
@@ -45,7 +46,7 @@ export async function editThread(id: string, body: string) {
     .from("threads")
     .update({ body: body.trim() })
     .eq("id", id);
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   revalidatePath(`/thread/${id}`);
   return {};
@@ -78,7 +79,7 @@ export async function editReply(id: string, body: string, threadId: string) {
     .from("thread_replies")
     .update({ body: body.trim() })
     .eq("id", id);
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   revalidatePath(`/thread/${threadId}`);
   return {};
@@ -116,7 +117,7 @@ export async function createThread(
     .insert({ author_id: user.id, category, title, body, media_url: mediaUrl, video_url: videoUrl })
     .select("id")
     .single();
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   // Auto-subscribe thread author to their own thread
   try {
@@ -169,7 +170,7 @@ export async function createReply(
     video_url: videoUrl,
     parent_reply_id: parentReplyId,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   // Auto-subscribe replier to the thread
   try {

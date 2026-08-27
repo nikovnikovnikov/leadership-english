@@ -8,6 +8,7 @@ import { SWRegistration } from "@/components/sw-registration";
 import { SITE_NAME } from "@/lib/config";
 import { getSettings } from "@/lib/queries";
 import { ALL_FONT_VARIABLES, FONT_CDN_LINKS } from "@/lib/fonts";
+import { sanitizeHexColor } from "@/lib/sanitize";
 
 const VALID_FONT_PAIRS = ["soft", "modern", "bold", "classic", "creative"] as const;
 
@@ -35,7 +36,7 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const settings = await getSettings();
-  const primaryColor = settings.primary_color || "#059669";
+  const primaryColor = sanitizeHexColor(settings.primary_color);
   const fontPair = VALID_FONT_PAIRS.includes(settings.font_pairing as typeof VALID_FONT_PAIRS[number])
     ? settings.font_pairing
     : "modern";

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { safeDbError } from "@/lib/sanitize";
 
 export type InviteActionState = { error?: string; ok?: boolean; code?: string };
 
@@ -56,7 +57,7 @@ export async function generateInvite(): Promise<InviteActionState> {
       code = generateCode();
       attempts++;
     } else {
-      return { error: error.message };
+      return { error: safeDbError(error) };
     }
   }
 
@@ -106,6 +107,7 @@ export async function getInviteSettings() {
       "invites_enabled", "invites_per_member",
       "subscription_required",
       "stripe_price_monthly", "stripe_price_yearly", "yearly_enabled",
+      "waitlist_enabled",
     ]);
 
   const map: Record<string, string> = {};

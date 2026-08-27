@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/queries";
+import { safeDbError } from "@/lib/sanitize";
 
 export type AccountState = {
   error?: string;
@@ -104,7 +105,7 @@ export async function deleteAccount(): Promise<AccountState> {
     .eq("id", user.id);
 
   if (profileError) {
-    return { error: `Could not delete profile: ${profileError.message}` };
+    return { error: "Could not delete profile. Please try again." };
   }
 
   // Delete the auth user
@@ -142,6 +143,6 @@ export async function logConsent(
     accepted,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
   return { ok: true };
 }

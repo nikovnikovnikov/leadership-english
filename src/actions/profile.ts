@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { sanitizeUrl, safeDbError } from "@/lib/sanitize";
 
 export type ProfileState = {
   error?: string;
@@ -17,11 +18,11 @@ export async function updateProfileLinks(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const instagramUrl = String(formData.get("instagram_url") ?? "").trim() || null;
-  const substackUrl = String(formData.get("substack_url") ?? "").trim() || null;
-  const xUrl = String(formData.get("x_url") ?? "").trim() || null;
-  const youtubeUrl = String(formData.get("youtube_url") ?? "").trim() || null;
-  const customLinkUrl = String(formData.get("custom_link_url") ?? "").trim() || null;
+  const instagramUrl = sanitizeUrl(String(formData.get("instagram_url") ?? "").trim());
+  const substackUrl = sanitizeUrl(String(formData.get("substack_url") ?? "").trim());
+  const xUrl = sanitizeUrl(String(formData.get("x_url") ?? "").trim());
+  const youtubeUrl = sanitizeUrl(String(formData.get("youtube_url") ?? "").trim());
+  const customLinkUrl = sanitizeUrl(String(formData.get("custom_link_url") ?? "").trim());
   const customLinkLabel = String(formData.get("custom_link_label") ?? "").trim() || null;
 
   const { error } = await supabase
@@ -36,7 +37,7 @@ export async function updateProfileLinks(
     })
     .eq("id", user.id);
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
   return { ok: true };
 }
 

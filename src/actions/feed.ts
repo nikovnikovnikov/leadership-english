@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getFeedThreads, type FeedThread } from "@/lib/queries";
+import { safeDbError } from "@/lib/sanitize";
 
 export type FeedActionState = { error?: string };
 
@@ -47,7 +48,7 @@ export async function editPost(id: string, body: string) {
     .from("feed_posts")
     .update({ body: body.trim() })
     .eq("id", id);
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   revalidatePath("/feed");
   return {};
@@ -67,7 +68,7 @@ export async function editComment(id: string, body: string) {
     .from("feed_comments")
     .update({ body: body.trim() })
     .eq("id", id);
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   revalidatePath("/feed");
   return {};
@@ -95,7 +96,7 @@ export async function createPost(
     media_url: mediaUrl,
     video_url: videoUrl,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   // Create @mention notifications
   const { extractMentions, notifyMentionedUsers } = await import("@/lib/notifications");
@@ -171,7 +172,7 @@ export async function createComment(
     author_id: user.id,
     body,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   // Create @mention notifications
   const { extractMentions, notifyMentionedUsers } = await import("@/lib/notifications");

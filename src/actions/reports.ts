@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { REPORT_TARGET_TYPES } from "@/lib/config";
+import { safeDbError } from "@/lib/sanitize";
 
 export type ReportActionState = { error?: string; ok?: boolean };
 
@@ -30,7 +31,7 @@ export async function createReport(
     reporter_id: user.id,
     reason,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   return { ok: true };
 }

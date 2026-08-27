@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getBlockedIds } from "@/lib/notifications";
+import { sanitizeSearchTerm } from "@/lib/sanitize";
 
 export type SearchResult = {
   type: "post" | "thread" | "member" | "course";
@@ -23,7 +24,7 @@ export async function searchAll(
   const supabase = await createClient();
 
   const blockedIds = await getBlockedIds(currentUserId);
-  const term = query.trim();
+  const term = sanitizeSearchTerm(query.trim());
 
   const [postsResult, threadsResult, membersResult, coursesResult] =
     await Promise.all([

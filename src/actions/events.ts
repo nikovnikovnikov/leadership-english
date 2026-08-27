@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { safeDbError } from "@/lib/sanitize";
 
 export type EventState = { error?: string };
 
@@ -89,7 +90,7 @@ export async function createEvent(
       .select("id")
       .single();
 
-    if (error) return { error: error.message };
+    if (error) return { error: safeDbError(error) };
 
     revalidatePath("/events");
     redirect(`/events/${data.id}`);
@@ -122,7 +123,7 @@ export async function createEvent(
     .insert(eventsToInsert)
     .select("id");
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
   if (!inserted?.length) return { error: "Failed to create events." };
 
   // Set recurring_group_id to the first event's id
@@ -206,7 +207,7 @@ export async function updateEvent(
     .update(updatePayload)
     .eq("id", id);
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   revalidatePath("/events");
   revalidatePath(`/events/${id}`);
@@ -279,14 +280,14 @@ export async function toggleEventSignup(eventId: string) {
       .from("event_signups")
       .delete()
       .eq("id", existing.id);
-    if (error) return { error: error.message };
+    if (error) return { error: safeDbError(error) };
   } else {
     // Sign up
     const { error } = await supabase.from("event_signups").insert({
       event_id: eventId,
       user_id: user.id,
     });
-    if (error) return { error: error.message };
+    if (error) return { error: safeDbError(error) };
   }
 
   revalidatePath(`/events/${eventId}`);
@@ -320,7 +321,7 @@ export async function postEventUpdate(
     created_by: user.id,
     body,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error) };
 
   // Notify signups (non-blocking)
   try {

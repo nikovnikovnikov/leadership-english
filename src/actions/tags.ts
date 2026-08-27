@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { escapeHtml, safeDbError } from "@/lib/sanitize";
 
 export type TagActionState = { error?: string; ok?: boolean };
 
@@ -36,7 +37,7 @@ export async function createTag(
   const { error } = await supabase.from("tags").insert({ name });
   if (error) {
     if (error.code === "23505") return { error: "A tag with that name already exists." };
-    return { error: error.message };
+    return { error: safeDbError(error) };
   }
 
   revalidatePath("/admin/tags");
@@ -159,10 +160,10 @@ export async function massEmailTag(
         html: `
           <div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 16px;">
             <p style="font-size: 14px; color: #292524; margin-bottom: 16px;">
-              Hi ${p.display_name ?? p.username},
+              Hi ${escapeHtml(p.display_name ?? p.username)},
             </p>
             <div style="font-size: 14px; color: #292524; line-height: 1.6; margin-bottom: 24px;">
-              ${body.replace(/\n/g, "<br/>")}
+              ${escapeHtml(body).replace(/\n/g, "<br/>")}
             </div>
             <a href="${siteUrl}/feed"
                style="display: inline-block; background-color: ${s.primary_color || "#059669"}; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600;">
