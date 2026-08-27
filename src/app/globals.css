@@ -107,10 +107,38 @@ body {
 
 .notion-content {
   --notion-font-size: 15px;
-  --notion-font-family: var(--app-font-sans);
+  --notion-font: var(--app-font-sans);
   --notion-hue: 40;
+  --notion-max-width: 100%;
+
+  --fg-color: var(--text-primary);
+  --fg-color-0: var(--border);
+  --fg-color-1: var(--border);
+  --fg-color-2: var(--text-muted);
+  --fg-color-3: var(--text-secondary);
+  --fg-color-4: var(--text-primary);
+  --fg-color-5: var(--hover-bg);
+  --fg-color-6: var(--text-secondary);
+  --fg-color-7: var(--text-muted);
+  --fg-color-icon: var(--text-primary);
+
+  --bg-color-1: var(--surface-elevated);
+  --bg-color-2: var(--border);
 
   color: var(--text-primary);
+}
+
+.notion-content .notion,
+.notion-content .notion-page {
+  font-size: var(--notion-font-size);
+}
+
+.notion-content .notion-text {
+  margin: 0.25em 0;
+}
+
+.notion-content .notion-viewport {
+  display: none;
 }
 
 .notion-content .notion-page-content {
