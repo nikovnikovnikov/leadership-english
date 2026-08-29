@@ -8,6 +8,7 @@ const ALL_TABS = [
   { href: "/admin/boards", label: "Boards", adminOnly: false },
   { href: "/admin/courses", label: "Courses", adminOnly: false },
   { href: "/admin/events/new", label: "Events", adminOnly: false },
+  { href: "/admin/chat", label: "Chat", adminOnly: false },
   { href: "/admin/branding", label: "Branding", adminOnly: true },
   { href: "/admin/tags", label: "Tags", adminOnly: true },
   { href: "/admin/community", label: "Community", adminOnly: true },

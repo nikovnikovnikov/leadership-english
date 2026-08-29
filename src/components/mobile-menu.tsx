@@ -20,6 +20,8 @@ const NAV_LINKS = [
   { href: "/search", label: "Search" },
 ] as const;
 
+const CHAT_LINK = { href: "/chat", label: "Chat" } as const;
+
 function MobileNavLink({
   href,
   label,
@@ -54,6 +56,7 @@ export function MobileMenu({
   notifCount,
   siteName,
   logoInitial,
+  chatEnabled,
 }: {
   open: boolean;
   onClose: () => void;
@@ -62,10 +65,15 @@ export function MobileMenu({
   notifCount: number;
   siteName: string;
   logoInitial: string;
+  chatEnabled: boolean;
 }) {
   const pathname = usePathname();
 
   if (!open) return null;
+
+  const links: ReadonlyArray<{ href: string; label: string }> = chatEnabled
+    ? [...NAV_LINKS.slice(0, 2), CHAT_LINK, ...NAV_LINKS.slice(2)]
+    : NAV_LINKS;
 
   return (
     <div className="fixed inset-0 z-50">
@@ -92,7 +100,7 @@ export function MobileMenu({
         </div>
 
         <nav className="space-y-1 p-3">
-          {NAV_LINKS.map((link) => (
+          {links.map((link) => (
             <MobileNavLink
               key={link.href}
               href={link.href}

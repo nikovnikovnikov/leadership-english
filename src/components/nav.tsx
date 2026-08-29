@@ -13,12 +13,14 @@ export function Nav({
   notifCount,
   siteName,
   logoInitial,
+  chatEnabled,
 }: {
   profile: (ProfileRef & { role: string }) | null;
   unreadCount: number;
   notifCount: number;
   siteName: string;
   logoInitial: string;
+  chatEnabled: boolean;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -87,6 +89,7 @@ export function Nav({
           notifCount={notifCount}
           siteName={siteName}
           logoInitial={logoInitial}
+          chatEnabled={chatEnabled}
         />
       )}
     </>

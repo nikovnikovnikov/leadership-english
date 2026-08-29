@@ -14,6 +14,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { EditButton, EditForm } from "@/components/edit-button";
 import { MarkdownContent } from "@/components/markdown-content";
 import { ReplyForm } from "@/components/board/reply-form";
+import { Poll } from "@/components/feed/poll";
 import { editThread, editReply, togglePin, deleteThread, deleteReply } from "@/actions/threads";
 import { toggleThreadSubscription } from "@/actions/notifications";
 
@@ -231,6 +232,7 @@ export function ThreadContent({
                     <VideoEmbed url={thread.video_url} />
                   </div>
                 )}
+                {thread.poll && <Poll threadId={thread.id} poll={thread.poll} />}
               </div>
             )}
           </div>

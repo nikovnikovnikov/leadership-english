@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { createThread, type ThreadActionState } from "@/actions/threads";
 import { FormattingToolbar } from "@/components/formatting-toolbar";
 import { ImageUploaderButton } from "@/components/image-uploader-button";
+import { PollComposer } from "@/components/feed/poll-composer";
 import { useDraft } from "@/lib/hooks/use-draft";
 
 export function ThreadComposer({ category }: { category: string }) {
@@ -70,6 +71,7 @@ export function ThreadComposer({ category }: { category: string }) {
 
       {state.error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{state.error}</p>}
       <div className="mt-3 flex items-center gap-1.5">
+        <PollComposer key={succeeded ? "reset" : "active"} />
         <ImageUploaderButton key={succeeded ? "reset" : "active"} />
         <button
           type="button"

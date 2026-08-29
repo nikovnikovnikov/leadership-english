@@ -112,9 +112,32 @@ export async function createThread(
   if (title.length < 3) return { error: "Title must be at least 3 characters." };
   if (!body) return { error: "Write something first." };
 
+  const pollQuestion = String(formData.get("poll_question") ?? "").trim() || null;
+  const pollOptions =
+    formData.getAll("poll_options").map((o) => String(o).trim()).filter(Boolean) || null;
+
+  if (pollQuestion || (pollOptions?.length ?? 0) > 0) {
+    if (!pollQuestion) return { error: "Add a poll question." };
+    if (!pollOptions || pollOptions.length < 2) return { error: "Add at least 2 poll options." };
+    if (pollOptions.length > 6) return { error: "Polls support up to 6 options." };
+    if (pollQuestion.length < 3 || pollQuestion.length > 200)
+      return { error: "Poll question must be 3–200 characters." };
+    if (pollOptions.some((o) => o.length > 80))
+      return { error: "Poll options must be 80 characters or fewer." };
+  }
+
   const { data, error } = await supabase
     .from("threads")
-    .insert({ author_id: user.id, category, title, body, media_url: mediaUrl, video_url: videoUrl })
+    .insert({
+      author_id: user.id,
+      category,
+      title,
+      body,
+      media_url: mediaUrl,
+      video_url: videoUrl,
+      poll_question: pollQuestion,
+      poll_options: pollOptions,
+    })
     .select("id")
     .single();
   if (error) return { error: safeDbError(error) };

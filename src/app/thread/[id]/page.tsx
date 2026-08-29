@@ -16,7 +16,7 @@ export default async function ThreadPage({
   const profile = await requireUser();
   const supabase = await createClient();
 
-  const thread = await getThread(id);
+  const thread = await getThread(id, profile.id);
   if (!thread) notFound();
 
   const [replies, { data: sub }, label] = await Promise.all([

@@ -5,6 +5,7 @@ import { createThread, type ThreadActionState } from "@/actions/threads";
 import { FormattingToolbar } from "@/components/formatting-toolbar";
 import { useDraft } from "@/lib/hooks/use-draft";
 import { ImageUploaderButton } from "@/components/image-uploader-button";
+import { PollComposer } from "@/components/feed/poll-composer";
 
 type Category = { id: string; label: string };
 
@@ -90,6 +91,7 @@ export function FeedComposer({ categories }: { categories: Category[] }) {
       )}
 
       <div className="mt-2 flex items-center gap-1.5">
+        <PollComposer key={succeeded ? "reset" : "active"} />
         <ImageUploaderButton key={succeeded ? "reset" : "active"} />
         <button
           type="button"

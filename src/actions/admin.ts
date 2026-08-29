@@ -220,7 +220,7 @@ const ALLOWED_SETTING_KEYS = new Set([
   "color_scheme", "font_pairing", "primary_color",
   "beta_mode", "beta_max_spots", "invites_enabled", "invites_per_member",
   "subscription_required", "stripe_price_monthly", "stripe_price_yearly",
-  "yearly_enabled", "waitlist_enabled",
+  "yearly_enabled", "waitlist_enabled", "chat_enabled",
 ]);
 
 const URL_SETTING_KEYS = new Set([

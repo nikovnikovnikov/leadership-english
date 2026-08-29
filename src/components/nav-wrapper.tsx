@@ -22,6 +22,7 @@ export async function NavWrapper() {
       notifCount={notifCount}
       siteName={settings.site_name || "Sanctum"}
       logoInitial={settings.logo_initial || "S"}
+      chatEnabled={settings.chat_enabled !== "false"}
     />
   );
 }

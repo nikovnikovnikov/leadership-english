@@ -8,6 +8,7 @@ import { VideoEmbed } from "@/components/video-embed";
 import { formatRelative } from "@/lib/utils";
 import { categoryLabel } from "@/lib/config";
 import type { FeedThread } from "@/lib/queries";
+import { Poll } from "@/components/feed/poll";
 
 export function ThreadCard({ thread }: { thread: FeedThread }) {
   const truncatedBody =
@@ -68,6 +69,8 @@ export function ThreadCard({ thread }: { thread: FeedThread }) {
           <VideoEmbed url={thread.video_url} />
         </div>
       )}
+
+      {thread.poll && <Poll threadId={thread.id} poll={thread.poll} />}
 
       {/* Footer: replies + likes */}
       <div className="mt-3 flex items-center gap-4 border-t border-stone-100 pt-3 dark:border-stone-800">

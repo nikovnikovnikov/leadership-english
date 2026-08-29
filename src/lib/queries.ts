@@ -110,6 +110,58 @@ export async function getFeedPosts(
   })) as unknown as FeedPost[];
 }
 
+export type PollData = {
+  question: string;
+  options: string[];
+  counts: number[];
+  total: number;
+  votedOption: number | null;
+};
+
+async function attachPollData<
+  T extends {
+    id: string;
+    poll_question: string | null;
+    poll_options: string[] | null;
+  },
+>(rows: T[], currentUserId: string | null): Promise<(T & { poll: PollData | null })[]> {
+  if (!rows.length) return rows as (T & { poll: PollData | null })[];
+  const supabase = await createClient();
+  const ids = rows.map((r) => r.id);
+  const { data: votes } = await supabase
+    .from("thread_poll_votes")
+    .select("thread_id, user_id, option_index")
+    .in("thread_id", ids);
+
+  const votesByThread = new Map<string, number[]>();
+  const myVote = new Map<string, number>();
+  for (const v of votes ?? []) {
+    const list = votesByThread.get(v.thread_id) ?? [];
+    list.push(v.option_index);
+    votesByThread.set(v.thread_id, list);
+    if (currentUserId && v.user_id === currentUserId) {
+      myVote.set(v.thread_id, v.option_index);
+    }
+  }
+
+  return rows.map((row) => {
+    if (!row.poll_question || !row.poll_options?.length) {
+      return { ...row, poll: null } as T & { poll: PollData | null };
+    }
+    const votes = votesByThread.get(row.id) ?? [];
+    return {
+      ...row,
+      poll: {
+        question: row.poll_question,
+        options: row.poll_options,
+        counts: row.poll_options.map((_, i) => votes.filter((o) => o === i).length),
+        total: votes.length,
+        votedOption: myVote.get(row.id) ?? null,
+      },
+    };
+  });
+}
+
 export type ThreadWithAuthor = {
   id: string;
   author_id: string;
@@ -122,6 +174,9 @@ export type ThreadWithAuthor = {
   last_activity_at: string;
   reply_count: number;
   created_at: string;
+  poll_question: string | null;
+  poll_options: string[] | null;
+  poll: PollData | null;
   author: ProfileRef | null;
 };
 
@@ -186,12 +241,14 @@ export async function getFeedThreads(
     if (l.user_id === currentUserId) likedByMe.add(l.target_id);
   }
 
-  return threads.map((t) => ({
+  const rows = threads.map((t) => ({
     ...t,
     author: authorMap.get(t.author_id) ?? null,
     like_count: likeByThread.get(t.id) ?? 0,
     liked_by_me: likedByMe.has(t.id),
   })) as FeedThread[];
+
+  return attachPollData(rows, currentUserId);
 }
 
 export async function getThreads(category: string): Promise<ThreadWithAuthor[]> {
@@ -213,13 +270,15 @@ export async function getThreads(category: string): Promise<ThreadWithAuthor[]> 
     .in("id", authorIds);
   const authorMap = new Map((authors ?? []).map((a) => [a.id, a as ProfileRef]));
 
-  return threads.map((t) => ({
+  const rows = threads.map((t) => ({
     ...t,
     author: authorMap.get(t.author_id) ?? null,
   })) as ThreadWithAuthor[];
+
+  return attachPollData(rows, null);
 }
 
-export async function getThread(id: string) {
+export async function getThread(id: string, currentUserId: string | null = null) {
   const supabase = await createClient();
   const { data: thread, error } = await supabase
     .from("threads")
@@ -235,7 +294,12 @@ export async function getThread(id: string) {
     .eq("id", thread.author_id)
     .single();
 
-  return { ...thread, author: (author as ProfileRef) ?? null };
+  const [row] = await attachPollData(
+    [{ ...thread, author: (author as ProfileRef) ?? null }],
+    currentUserId,
+  );
+
+  return row;
 }
 
 export async function getThreadReplies(threadId: string) {
