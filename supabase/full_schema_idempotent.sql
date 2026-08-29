@@ -999,6 +999,258 @@ EXCEPTION WHEN duplicate_object THEN null; END $$;
 DROP FUNCTION IF EXISTS _safe_add_col(text, text, text);
 
 -- ============================================================================
+
+
+-- ---------------------------------------------------------------------------
+-- Migrations 0017-0021 (constituent + added features, idempotent)
+-- ---------------------------------------------------------------------------
+-- Fix: remove INSERT policy on notifications.
+-- Server actions insert notifications for OTHER users (mentions, replies, etc.)
+-- so the user_id = auth.uid() check blocks all cross-user notification creation.
+-- SELECT and UPDATE policies remain (users can only read/update their own).
+
+DROP POLICY IF EXISTS "notifications insert own" ON public.notifications;
+
+
+-- Add Notion page ID support to lessons
+-- When set, the lesson renders content from a Notion page instead of (or alongside) the description field.
+
+ALTER TABLE public.lessons ADD COLUMN IF NOT EXISTS notion_page_id text;
+
+
+-- Waitlist table for gated community access
+CREATE TABLE IF NOT EXISTS waitlist (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email       text NOT NULL UNIQUE,
+  position    bigint GENERATED ALWAYS AS IDENTITY,
+  status      text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'admitted', 'declined')),
+  note        text,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  admitted_at timestamptz
+);
+
+ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
+
+-- Anyone (including anon) can insert to join the waitlist
+DO $$ BEGIN CREATE POLICY "Anyone can join waitlist"
+  ON waitlist FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- Only admins can read the waitlist
+DO $$ BEGIN CREATE POLICY "Admins can read waitlist"
+  ON waitlist FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.role = 'admin'
+    )
+  );
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- Only admins can update waitlist entries (admit/decline)
+DO $$ BEGIN CREATE POLICY "Admins can update waitlist"
+  ON waitlist FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.role = 'admin'
+    )
+  )
+  WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- Only admins can delete waitlist entries
+DO $$ BEGIN CREATE POLICY "Admins can delete waitlist"
+  ON waitlist FOR DELETE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.role = 'admin'
+    )
+  );
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+
+-- ============================================================================
+-- 0020: Live chat rooms — Discord-style rooms with realtime messages
+-- ============================================================================
+
+-- Rooms
+CREATE TABLE IF NOT EXISTS chat_rooms (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        text NOT NULL,
+  description text,
+  created_by  uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+-- Room messages (subscribed via Supabase Realtime)
+CREATE TABLE IF NOT EXISTS chat_room_messages (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id    uuid NOT NULL REFERENCES public.chat_rooms(id) ON DELETE CASCADE,
+  user_id    uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  body       text NOT NULL CHECK (char_length(body) BETWEEN 1 AND 2000),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Deliver full rows on UPDATE/DELETE realtime events
+ALTER TABLE chat_room_messages REPLICA IDENTITY FULL;
+
+CREATE INDEX IF NOT EXISTS chat_room_messages_room_idx
+  ON public.chat_room_messages (room_id, created_at);
+
+-- Add to the realtime publication so clients can subscribe to INSERT events
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_room_messages;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- RLS
+ALTER TABLE chat_rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_room_messages ENABLE ROW LEVEL SECURITY;
+
+-- Table-level grants (RLS handles row filtering within these)
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.chat_rooms TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.chat_room_messages TO authenticated;
+
+-- Rooms: all authenticated members can read; only admins manage
+DROP POLICY IF EXISTS "chat_rooms select" ON public.chat_rooms;
+DO $$ BEGIN CREATE POLICY "chat_rooms select" ON public.chat_rooms
+  FOR SELECT TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DROP POLICY IF EXISTS "chat_rooms insert admin" ON public.chat_rooms;
+DO $$ BEGIN CREATE POLICY "chat_rooms insert admin" ON public.chat_rooms
+  FOR INSERT TO authenticated WITH CHECK (public.is_admin());
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DROP POLICY IF EXISTS "chat_rooms update admin" ON public.chat_rooms;
+DO $$ BEGIN CREATE POLICY "chat_rooms update admin" ON public.chat_rooms
+  FOR UPDATE TO authenticated USING (public.is_admin());
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DROP POLICY IF EXISTS "chat_rooms delete admin" ON public.chat_rooms;
+DO $$ BEGIN CREATE POLICY "chat_rooms delete admin" ON public.chat_rooms
+  FOR DELETE TO authenticated USING (public.is_admin());
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- Messages: all authenticated members can read; anyone can post their own
+DROP POLICY IF EXISTS "chat_room_messages select" ON public.chat_room_messages;
+DO $$ BEGIN CREATE POLICY "chat_room_messages select" ON public.chat_room_messages
+  FOR SELECT TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DROP POLICY IF EXISTS "chat_room_messages insert" ON public.chat_room_messages;
+DO $$ BEGIN CREATE POLICY "chat_room_messages insert" ON public.chat_room_messages
+  FOR INSERT TO authenticated
+  WITH CHECK (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DROP POLICY IF EXISTS "chat_room_messages delete admin" ON public.chat_room_messages;
+DO $$ BEGIN CREATE POLICY "chat_room_messages delete admin" ON public.chat_room_messages
+  FOR DELETE TO authenticated USING (public.is_admin());
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- ============================================================================
+-- 0021: Thread polls — question + options on threads, one vote per member
+-- ============================================================================
+
+-- Poll fields on threads (nullable = no poll)
+ALTER TABLE public.threads ADD COLUMN IF NOT EXISTS poll_question text;
+ALTER TABLE public.threads ADD COLUMN IF NOT EXISTS poll_options text[];
+
+-- One row per (thread, user) — a user can only have one option selected.
+-- Re-voting switches the option; voting the same option again removes it.
+CREATE TABLE IF NOT EXISTS public.thread_poll_votes (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  thread_id    uuid NOT NULL REFERENCES public.threads (id) ON DELETE CASCADE,
+  user_id      uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
+  option_index int  NOT NULL CHECK (option_index >= 0),
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (thread_id, user_id)
+);
+
+ALTER TABLE public.thread_poll_votes ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN CREATE POLICY "poll votes select" ON public.thread_poll_votes
+  FOR SELECT TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN CREATE POLICY "poll votes insert" ON public.thread_poll_votes
+  FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN CREATE POLICY "poll votes update" ON public.thread_poll_votes
+  FOR UPDATE TO authenticated USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN CREATE POLICY "poll votes delete" ON public.thread_poll_votes
+  FOR DELETE TO authenticated USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+CREATE INDEX IF NOT EXISTS thread_poll_votes_thread_idx
+  ON public.thread_poll_votes (thread_id);
+
+-- Toggle a vote atomically (security definer, validates poll + option range)
+CREATE OR REPLACE FUNCTION public.toggle_poll_vote(p_thread_id uuid, p_option_index int)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid      uuid := auth.uid();
+  v_existing int;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  IF p_option_index IS NULL OR p_option_index < 0 THEN
+    RAISE EXCEPTION 'Invalid option';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.threads
+    WHERE id = p_thread_id
+      AND poll_question IS NOT NULL
+      AND poll_options IS NOT NULL
+      AND p_option_index < cardinality(poll_options)
+  ) THEN
+    RAISE EXCEPTION 'Invalid poll or option';
+  END IF;
+
+  SELECT option_index INTO v_existing
+  FROM public.thread_poll_votes
+  WHERE thread_id = p_thread_id AND user_id = v_uid;
+
+  IF v_existing IS NULL THEN
+    INSERT INTO public.thread_poll_votes (thread_id, user_id, option_index)
+    VALUES (p_thread_id, v_uid, p_option_index);
+  ELSIF v_existing = p_option_index THEN
+    DELETE FROM public.thread_poll_votes
+    WHERE thread_id = p_thread_id AND user_id = v_uid;
+  ELSE
+    UPDATE public.thread_poll_votes
+    SET option_index = p_option_index
+    WHERE thread_id = p_thread_id AND user_id = v_uid;
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.toggle_poll_vote(uuid, int) FROM public;
+GRANT EXECUTE ON FUNCTION public.toggle_poll_vote(uuid, int) TO authenticated;
+
+-- Table-level grants for authenticated (RLS filters within these)
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.thread_poll_votes TO authenticated;
+
 -- Lesson comments (migration 0022)
 -- ============================================================================
 create table if not exists public.lesson_comments (
