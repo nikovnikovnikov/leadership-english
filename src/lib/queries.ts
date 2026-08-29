@@ -320,7 +320,7 @@ export async function getCourses() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("courses")
-    .select("id, title, description, created_at, required_tag_id")
+    .select("id, title, description, created_at")
     .eq("published", true)
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
@@ -333,7 +333,7 @@ export async function getCourse(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("courses")
-    .select("id, title, description, created_at, required_tag_id")
+    .select("id, title, description, created_at")
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -345,7 +345,7 @@ export async function getLessons(courseId: string) {
   const { data, error } = await supabase
     .from("lessons")
     .select(
-      "id, course_id, title, description, video_url, order_index, required_points, published, notion_page_id",
+      "id, course_id, title, description, video_url, order_index, published, notion_page_id",
     )
     .eq("course_id", courseId)
     .eq("published", true)
@@ -361,12 +361,98 @@ export async function getLesson(id: string) {
   const { data, error } = await supabase
     .from("lessons")
     .select(
-      "id, course_id, title, description, video_url, order_index, required_points, published, notion_page_id",
+      "id, course_id, title, description, video_url, order_index, published, notion_page_id",
     )
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data;
+}
+
+export type LessonComment = {
+  id: string;
+  lesson_id: string;
+  author_id: string;
+  parent_id: string | null;
+  body: string;
+  created_at: string;
+  author: ProfileRef | null;
+};
+
+export async function getLessonComments(lessonId: string): Promise<LessonComment[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("lesson_comments")
+    .select(`*, author:profiles(${PROFILE_FIELDS})`)
+    .eq("lesson_id", lessonId)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as LessonComment[];
+}
+
+export type LearningCourse = {
+  course: Course;
+  lessons: Lesson[];
+  completedCount: number;
+  totalLessons: number;
+  nextLesson: Lesson | null;
+  finished: boolean;
+};
+
+export type LearningOverview = {
+  courses: LearningCourse[];
+  totalLessons: number;
+  totalCompleted: number;
+  resume: { lesson: Lesson; course: Course; inProgress: boolean } | null;
+  allFinished: boolean;
+};
+
+/** Per-user learning dashboard: course progress + the best "resume" target. */
+export async function getLearningOverview(userId: string): Promise<LearningOverview> {
+  const courses = await getCourses();
+  const completed = await getCompletedLessonIds(userId);
+
+  const items: LearningCourse[] = await Promise.all(
+    courses.map(async (course) => {
+      const lessons = await getLessons(course.id);
+      const completedCount = lessons.filter((l) => completed.has(l.id)).length;
+      return {
+        course,
+        lessons,
+        completedCount,
+        totalLessons: lessons.length,
+        nextLesson: lessons.find((l) => !completed.has(l.id)) ?? null,
+        finished: lessons.length > 0 && lessons.every((l) => completed.has(l.id)),
+      };
+    }),
+  );
+
+  const totalLessons = items.reduce((sum, c) => sum + c.totalLessons, 0);
+  const totalCompleted = items.reduce((sum, c) => sum + c.completedCount, 0);
+
+  const inProgress = items
+    .filter((c) => !c.finished && c.completedCount > 0 && c.totalLessons > 0)
+    .sort((a, b) => b.completedCount - a.completedCount || a.totalLessons - b.totalLessons);
+  const notStarted = items.filter((c) => c.totalLessons > 0 && c.completedCount === 0);
+  const allFinished =
+    items.length > 0 && items.every((c) => c.totalLessons === 0 || c.finished);
+
+  let resume: LearningOverview["resume"] = null;
+  if (inProgress[0]?.nextLesson) {
+    resume = {
+      lesson: inProgress[0].nextLesson,
+      course: inProgress[0].course,
+      inProgress: true,
+    };
+  } else if (notStarted[0]?.lessons[0]) {
+    resume = {
+      lesson: notStarted[0].lessons[0],
+      course: notStarted[0].course,
+      inProgress: false,
+    };
+  }
+
+  return { courses: items, totalLessons, totalCompleted, resume, allFinished };
 }
 
 export async function getCompletedLessonIds(userId: string) {
@@ -878,6 +964,136 @@ export type Category = {
   sort_order: number;
   required_tag_id: string | null;
 };
+
+// ── Course analytics ─────────────────────────────────────────────────────────
+
+export type LessonCompletionStat = {
+  lessonId: string;
+  title: string;
+  orderIndex: number;
+  completions: number;
+};
+
+export type CourseAnalytics = {
+  courseId: string;
+  title: string;
+  lessonCount: number;
+  startedUsers: number;
+  completedUsers: number;
+  completionRateOfMembers: number;
+  completionRateOfStarters: number;
+  medianMinutesToComplete: number | null;
+  lessons: LessonCompletionStat[];
+};
+
+function medianMinutes(spansMs: number[]): number | null {
+  if (!spansMs.length) return null;
+  const sorted = [...spansMs].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const medianMs =
+    sorted.length % 2 === 0
+      ? (sorted[mid - 1] + sorted[mid]) / 2
+      : sorted[mid];
+  return Math.round(medianMs / 60000);
+}
+
+/** Per-course completion analytics for admins. */
+export async function getCourseAnalytics(): Promise<CourseAnalytics[]> {
+  const supabase = await createClient();
+
+  const { data: courses } = await supabase
+    .from("courses")
+    .select("id, title")
+    .eq("published", true)
+    .order("created_at", { ascending: false });
+  if (!courses?.length) return [];
+
+  const { count: memberCount } = await supabase
+    .from("profiles")
+    .select("id", { count: "exact", head: true });
+  const members = memberCount ?? 0;
+
+  const result: CourseAnalytics[] = [];
+
+  for (const course of courses) {
+    const { data: lessons } = await supabase
+      .from("lessons")
+      .select("id, title, order_index")
+      .eq("course_id", course.id)
+      .eq("published", true)
+      .order("order_index", { ascending: true });
+    if (!lessons?.length) {
+      result.push({
+        courseId: course.id,
+        title: course.title,
+        lessonCount: 0,
+        startedUsers: 0,
+        completedUsers: 0,
+        completionRateOfMembers: 0,
+        completionRateOfStarters: 0,
+        medianMinutesToComplete: null,
+        lessons: [],
+      });
+      continue;
+    }
+
+    const lessonIds = lessons.map((l) => l.id);
+    const { data: progress } = await supabase
+      .from("lesson_progress")
+      .select("user_id, lesson_id, completed_at")
+      .in("lesson_id", lessonIds);
+
+    const byUser = new Map<string, Map<string, string>>();
+    for (const row of progress ?? []) {
+      let times = byUser.get(row.user_id);
+      if (!times) {
+        times = new Map();
+        byUser.set(row.user_id, times);
+      }
+      times.set(row.lesson_id, row.completed_at);
+    }
+
+    const completions = new Map<string, number>();
+    for (const l of lessons) completions.set(l.id, 0);
+    for (const times of byUser.values()) {
+      for (const lessonId of times.keys()) {
+        completions.set(lessonId, (completions.get(lessonId) ?? 0) + 1);
+      }
+    }
+
+    let completedUsers = 0;
+    const spansMs: number[] = [];
+    for (const times of byUser.values()) {
+      if (lessons.every((l) => times.has(l.id))) {
+        completedUsers++;
+        const sorted = [...times.values()].sort();
+        const first = new Date(sorted[0]).getTime();
+        const last = new Date(sorted[sorted.length - 1]).getTime();
+        spansMs.push(last - first);
+      }
+    }
+
+    const startedUsers = byUser.size;
+    result.push({
+      courseId: course.id,
+      title: course.title,
+      lessonCount: lessons.length,
+      startedUsers,
+      completedUsers,
+      completionRateOfMembers: members ? Math.round((completedUsers / members) * 100) : 0,
+      completionRateOfStarters: startedUsers ? Math.round((completedUsers / startedUsers) * 100) : 0,
+      medianMinutesToComplete: medianMinutes(spansMs),
+      lessons: lessons.map((l) => ({
+        lessonId: l.id,
+        title: l.title,
+        orderIndex: l.order_index,
+        completions: completions.get(l.id) ?? 0,
+      })),
+    });
+  }
+
+  return result;
+}
 
 /** Fetch categories from DB, falling back to hardcoded config. */
 export async function getCategories(): Promise<Category[]> {

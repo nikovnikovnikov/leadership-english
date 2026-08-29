@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { SITE_NAME } from "@/lib/config";
-import { getSettings } from "@/lib/queries";
 
 export async function Footer() {
-  const settings = await getSettings();
-  const name = settings.site_name || SITE_NAME;
+  const name = SITE_NAME;
 
   return (
     <footer className="mt-12 border-t border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">

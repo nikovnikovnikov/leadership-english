@@ -54,6 +54,21 @@ export default async function AdminMembersPage({
     points: pointsMap.get(m.id) ?? 0,
   }));
 
+  const memberIds = members.map((m) => m.id);
+  const latestByUser: Record<string, { band: string; score_scaled: number; taken_at: string }> = {};
+  if (memberIds.length > 0) {
+    const { data: assessments } = await supabase
+      .from("user_assessments")
+      .select("user_id, band, score_scaled, taken_at")
+      .in("user_id", memberIds);
+    for (const row of assessments ?? []) {
+      const current = latestByUser[row.user_id];
+      if (!current || row.taken_at > current.taken_at) {
+        latestByUser[row.user_id] = row;
+      }
+    }
+  }
+
   const { data: allProfileTags } = await supabase
     .from("profile_tags")
     .select("profile_id, tag_id");
@@ -105,6 +120,11 @@ export default async function AdminMembersPage({
                 <p className="text-xs text-stone-400">
                   @{m.username} · joined {formatRelative(m.created_at)} ·{" "}
                   {m.points} pts
+                  {latestByUser[m.id] && (
+                    <span className="ml-1.5 rounded-full bg-[var(--primary-light)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--primary)]">
+                      {latestByUser[m.id].band} · {latestByUser[m.id].score_scaled}/100
+                    </span>
+                  )}
                 </p>
               </Link>
               <div className="flex items-center gap-2 shrink-0">

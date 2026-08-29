@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { SITE_NAME, SITE_LOGO_INITIAL } from "@/lib/config";
 
 export function Logo({
-  siteName = "Sanctum",
-  logoInitial = "S",
+  siteName = SITE_NAME,
+  logoInitial = SITE_LOGO_INITIAL,
 }: {
   siteName?: string;
   logoInitial?: string;

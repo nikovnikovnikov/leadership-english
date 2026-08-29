@@ -10,7 +10,6 @@ type LessonFields = {
   video_url: string | null;
   notion_page_id: string | null;
   order_index: number;
-  required_points: number;
   published: boolean;
 };
 
@@ -74,23 +73,13 @@ export function LessonForm({
           Paste a Notion page ID to render rich content (tables, callouts, toggles, etc.) below the description.
         </p>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="mb-1 block text-sm font-medium">Order</label>
           <input
             name="order_index"
             type="number"
             defaultValue={initial?.order_index ?? 0}
-            className="w-full rounded-lg border border-stone-300 dark:border-stone-800 bg-white dark:bg-stone-900 px-3 py-2 text-sm outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium">Points needed</label>
-          <input
-            name="required_points"
-            type="number"
-            min={0}
-            defaultValue={initial?.required_points ?? 0}
             className="w-full rounded-lg border border-stone-300 dark:border-stone-800 bg-white dark:bg-stone-900 px-3 py-2 text-sm outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20"
           />
         </div>

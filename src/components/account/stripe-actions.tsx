@@ -62,7 +62,7 @@ export function StripeActions({
   if (accessType === "beta" || accessType === "invite") {
     return (
       <p className="text-sm text-stone-600 dark:text-stone-300">
-        You joined via {accessType === "beta" ? "the beta program" : "an invite"} — you have full access to every lesson.
+        You joined via {accessType === "beta" ? "the beta program" : "an invite"} — welcome to the community.
       </p>
     );
   }
@@ -77,9 +77,9 @@ export function StripeActions({
 
       {subscribed ? (
         <>
-          <p className="text-sm text-stone-600 dark:text-stone-300">
-            You have a full-access subscription. Every lesson is unlocked.
-          </p>
+<p className="text-sm text-stone-600 dark:text-stone-300">
+        You have an active membership. Thank you for supporting the community.
+      </p>
           <button
             onClick={callPortal}
             disabled={busy}
@@ -91,7 +91,8 @@ export function StripeActions({
       ) : (
         <>
           <p className="text-sm text-stone-600 dark:text-stone-300">
-            Subscribe and unlock every lesson instantly — no points grind required.
+            All courses are open to you either way. Subscribe to support the
+            community and help keep it growing.
           </p>
 
           {yearlyEnabled && (

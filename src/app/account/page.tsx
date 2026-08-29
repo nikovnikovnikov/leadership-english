@@ -81,8 +81,8 @@ export default async function AccountPage() {
               </p>
               <p className="mt-1 text-xs text-stone-400 dark:text-stone-400">
                 {subscribed || accessType === "beta" || accessType === "invite"
-                  ? "Full access to every lesson"
-                  : "Earn points to unlock lessons"}
+                  ? "Thank you for supporting the community"
+                  : "All courses are open to you — no access required"}
               </p>
             </>
           ) : (

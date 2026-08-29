@@ -25,4 +25,6 @@ export async function completeLesson(lessonId: string) {
 
   revalidatePath(`/lesson/${lessonId}`);
   revalidatePath(`/course/${lesson.course_id}`);
+  revalidatePath("/courses");
+  revalidatePath("/learn");
 }

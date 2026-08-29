@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getAllTags } from "@/lib/queries";
 import { CourseForm } from "@/components/admin/course-form";
 
 export const metadata = { title: "Courses" };
@@ -9,17 +8,17 @@ export const metadata = { title: "Courses" };
 export default async function AdminCoursesPage() {
   await requireAdmin();
   const supabase = await createClient();
-  const tags = await getAllTags();
 
   const { data: courses } = await supabase
     .from("courses")
-    .select("id, title, description, published, required_tag_id")
+    .select("id, title, description, published")
     .order("created_at", { ascending: false });
 
   return (
     <div className="space-y-6">
       <p className="text-sm text-stone-500">
-        Create and manage courses and their lessons. Use &ldquo;Access restriction&rdquo; to gate a course behind a user tag.
+        Create and manage courses and their lessons. Every course is open to
+        all members by default.
       </p>
 
       <div className="space-y-2">
@@ -39,11 +38,6 @@ export default async function AdminCoursesPage() {
                 <p className="text-xs text-stone-400">
                   {course.published ? "Published" : "Draft"}
                 </p>
-                {course.required_tag_id && (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
-                    Gated
-                  </span>
-                )}
               </div>
             </div>
             <Link
@@ -59,7 +53,7 @@ export default async function AdminCoursesPage() {
         )}
       </div>
 
-      <CourseForm tags={tags} />
+      <CourseForm />
     </div>
   );
 }

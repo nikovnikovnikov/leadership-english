@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { SignupForm } from "@/components/auth/signup-form";
 import { getAuthUser, getCurrentProfile } from "@/lib/auth";
+import { SITE_NAME } from "@/lib/config";
 import { getSettings } from "@/lib/queries";
 import { getInviteSettings, getBetaSpotsRemaining, validateInviteCode } from "@/actions/invites";
 import { createClient } from "@/lib/supabase/server";
@@ -21,7 +22,7 @@ async function SignupPageContent({
     getSettings(),
     getInviteSettings(),
   ]);
-  const name = allSettings.site_name || "Sanctum";
+  const name = SITE_NAME;
   const heading = allSettings.signup_heading
     ? allSettings.signup_heading.replace("{name}", name)
     : `Join ${name}`;
@@ -102,7 +103,7 @@ export default async function SignupPage(props: {
   searchParams?: Promise<{ invite?: string; waitlist_token?: string }>;
 }) {
   const profile = await getCurrentProfile();
-  if (profile) redirect("/feed");
+  if (profile) redirect("/learn");
 
   if (await getAuthUser()) redirect("/setup");
 

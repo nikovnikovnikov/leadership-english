@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { SITE_NAME } from "@/lib/config";
 import { createClient } from "@/lib/supabase/server";
 import { escapeHtml, safeDbError } from "@/lib/sanitize";
 
@@ -142,10 +143,10 @@ export async function massEmailTag(
   if (!resendKey) return { error: "Resend API key not configured." };
 
   const resend = new Resend(resendKey);
-  const settings = (await import("@/lib/queries")).getSettings;
-  const s = await settings();
-  const siteName = s.site_name || "Sanctum";
-  const fromEmail = process.env.FROM_EMAIL || `Sanctum <notifications@sanctum.community>`;
+  const siteName = SITE_NAME;
+  const getSettings = (await import("@/lib/queries")).getSettings;
+  const s = await getSettings();
+  const fromEmail = process.env.FROM_EMAIL || `Leadership English Community <notifications@leadershipenglish.community>`;
   const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   for (const p of profiles) {

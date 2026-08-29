@@ -1,9 +1,13 @@
 import { Resend } from "resend";
-import { getSettings } from "@/lib/queries";
+import { SITE_NAME } from "@/lib/config";
 import { escapeHtml } from "@/lib/sanitize";
 
 const resendKey = process.env.RESEND_API_KEY;
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+const FROM_EMAIL =
+  process.env.FROM_EMAIL ||
+  `Leadership English Community <notifications@leadershipenglish.community>`;
 
 export async function sendDmNotification({
   recipientEmail,
@@ -19,9 +23,8 @@ export async function sendDmNotification({
   if (!resendKey) return;
 
   const resend = new Resend(resendKey);
-  const settings = await getSettings();
-  const name = settings.site_name || "Sanctum";
-  const fromEmail = process.env.FROM_EMAIL || `Sanctum <notifications@sanctum.community>`;
+  const name = SITE_NAME;
+  const fromEmail = FROM_EMAIL;
 
   await resend.emails.send({
     from: fromEmail,
@@ -57,9 +60,8 @@ export async function sendWaitlistInvite({
   if (!resendKey) return;
 
   const resend = new Resend(resendKey);
-  const settings = await getSettings();
-  const name = settings.site_name || "Sanctum";
-  const fromEmail = process.env.FROM_EMAIL || `Sanctum <notifications@sanctum.community>`;
+  const name = SITE_NAME;
+  const fromEmail = FROM_EMAIL;
 
   await resend.emails.send({
     from: fromEmail,

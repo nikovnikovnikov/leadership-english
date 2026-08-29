@@ -3,14 +3,10 @@
 import { useActionState } from "react";
 import { createCourse, updateCourse, type AdminActionState } from "@/actions/admin";
 
-type TagOption = { id: string; name: string };
-
 export function CourseForm({
   initial,
-  tags,
 }: {
-  initial?: { id: string; title: string; description: string | null; published: boolean; required_tag_id: string | null };
-  tags: TagOption[];
+  initial?: { id: string; title: string; description: string | null; published: boolean };
 }) {
   const [state, formAction, pending] = useActionState<AdminActionState, FormData>(
     initial ? updateCourse : createCourse,
@@ -38,21 +34,6 @@ export function CourseForm({
           defaultValue={initial?.description ?? ""}
           className="w-full rounded-lg border border-stone-300 dark:border-stone-800 bg-white dark:bg-stone-900 px-3 py-2 text-sm outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20"
         />
-      </div>
-      <div>
-        <label className="mb-1 block text-sm font-medium">Access restriction</label>
-        <select
-          name="required_tag_id"
-          defaultValue={initial?.required_tag_id ?? ""}
-          className="w-full rounded-lg border border-stone-300 dark:border-stone-800 bg-white dark:bg-stone-900 px-3 py-2 text-sm outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20"
-        >
-          <option value="">No restriction</option>
-          {tags.map((tag) => (
-            <option key={tag.id} value={tag.id}>
-              Require: {tag.name}
-            </option>
-          ))}
-        </select>
       </div>
       <label className="flex items-center gap-2 text-sm">
         <input

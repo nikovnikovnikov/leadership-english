@@ -1,7 +1,7 @@
-# Sanctum — a personal Skool-style community
+# Leadership English Community — a personal Skool-style community
 
 A self-hosted, fully-controlled community platform: a social feed, a
-message-board ("threads"), gated video courses, and subscriptions. Built for a
+message-board ("threads"), video courses, and subscriptions. Built for a
 single owner who wants everything under their own roof.
 
 ## Features
@@ -10,12 +10,14 @@ single owner who wants everything under their own roof.
 - **Threads board** — 7 categories (general, philosophy, body, spirit,
   world-news, vent, questions), nested replies, threads bump on activity,
   pinning.
-- **Courses** — modules of lessons with embedded video and progress tracking.
-- **Engagement gating** — members earn points by posting, commenting, replying,
-  and receiving likes. Lessons unlock at point thresholds. A daily cap prevents
-  farming.
-- **Subscriptions** — optional Stripe monthly subscription that unlocks every
-  lesson instantly.
+- **Courses** — modules of lessons with embedded video, progress tracking, a
+  per-lesson discussion area, and a learning dashboard (`/learn`) that resumes
+  where you left off.
+- **Engagement points** — members earn points by posting, commenting, replying,
+  and receiving likes. A daily cap prevents farming. Points are recognition,
+  not access: every course and lesson is open to all members.
+- **Subscriptions** — optional Stripe monthly subscription to support the
+  community.
 - **Reports & moderation** — any member can flag content; an admin queue to
   resolve or dismiss.
 - **Admin dashboard** — courses/lessons management, moderation queue, point
@@ -79,8 +81,8 @@ Open http://localhost:3000, **sign up**, and complete the username step. The
 3. Set `STRIPE_WEBHOOK_SECRET` from the webhook signing secret.
 4. Set `ENABLE_STRIPE=true`.
 
-While `ENABLE_STRIPE` is `false`, every lesson is treated as unlocked so you can
-develop without a payment setup.
+While `ENABLE_STRIPE` is `false`, subscriptions are simply not offered — use it
+to develop without a payment setup.
 
 ## How points work
 
@@ -96,8 +98,8 @@ editable in the admin dashboard:
 | Like received | +1 |
 | Daily cap | 50 |
 
-A lesson with `required_points` of N is viewable if your total points are ≥ N
-**or** you have an active subscription.
+Points measure participation (the leaderboard on `/board` and profiles use
+them), but they never restrict access — all courses are open by default.
 
 ## Layout
 
@@ -113,9 +115,10 @@ src/
     utils.ts        formatting, video-embed conversion
   app/
     feed/           social feed
+    learn/          learning dashboard (resume, course progress)
     board/          category index + [category] thread lists
     thread/[id]/    thread + replies
-    courses/ course/[id]/ lesson/[id]   gated video lessons
+    courses/ course/[id]/ lesson/[id]   video lessons + lesson discussions
     members/ member/[username]          member directory + profiles
     account/        points breakdown + subscription management
     admin/          dashboard (reports, courses, points, members)

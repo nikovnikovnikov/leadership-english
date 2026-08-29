@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getAuthUser, getCurrentProfile } from "@/lib/auth";
+import { SITE_NAME, SITE_LOGO_INITIAL } from "@/lib/config";
 import { getSettings } from "@/lib/queries";
 import { getInviteSettings, getBetaSpotsRemaining } from "@/actions/invites";
 import { createClient } from "@/lib/supabase/server";
@@ -9,7 +10,7 @@ import { WaitlistForm } from "@/components/waitlist-form";
 
 export default async function HomePage() {
   const profile = await getCurrentProfile();
-  if (profile) redirect("/feed");
+  if (profile) redirect("/learn");
 
   if (await getAuthUser()) redirect("/setup");
 
@@ -18,7 +19,7 @@ export default async function HomePage() {
     getInviteSettings(),
   ]);
   const heading = settings.landing_heading || "A space built for real growth";
-  const subtext = settings.landing_subtext || "A small, private community for learning and real conversation. Earn access to the vault by showing up and sharing.";
+  const subtext = settings.landing_subtext || "A small, private community for learning and real conversation. Work through the courses at your own pace and grow together.";
 
   const betaMode = onboardingSettings.beta_mode === "true";
   const waitlistEnabled = onboardingSettings.waitlist_enabled === "true";
@@ -59,7 +60,7 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col items-center py-16 text-center">
       <span className="mb-6 grid h-16 w-16 place-items-center rounded-2xl bg-[var(--primary)] text-2xl font-bold text-white">
-        {settings.logo_initial || "S"}
+        {SITE_LOGO_INITIAL}
       </span>
       <h1 className="text-4xl font-semibold tracking-tight dark:text-stone-100">{heading}</h1>
       <p className="mt-3 max-w-md text-lg text-stone-600 dark:text-stone-300">
@@ -89,7 +90,7 @@ export default async function HomePage() {
 
       {waitlistEnabled ? (
         <div className="mt-8">
-          <WaitlistForm siteName={settings.site_name || "Sanctum"} />
+          <WaitlistForm siteName={SITE_NAME} />
           <div className="mt-4 flex justify-center">
             <Link
               href="/login"
@@ -120,7 +121,7 @@ export default async function HomePage() {
       {startHere && (
         <div className="mt-12 w-full max-w-xl rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-6 text-left shadow-sm">
           <h2 className="mb-3 text-sm font-bold tracking-wide uppercase text-stone-400 dark:text-stone-500">
-            Welcome to {settings.site_name || "Sanctum"}
+            Welcome to {SITE_NAME}
           </h2>
           <div className="prose prose-sm dark:prose-invert max-w-none text-stone-600 dark:text-stone-300">
             <MarkdownContent content={startHere} />
@@ -133,7 +134,7 @@ export default async function HomePage() {
         {[
           { icon: "📝", label: "Feed", desc: "Share thoughts and ideas" },
           { icon: "💬", label: "Board", desc: "Threaded discussions" },
-          { icon: "🎓", label: "Courses", desc: "Unlock lessons with points" },
+          { icon: "🎓", label: "Courses", desc: "Start learning right away" },
           { icon: "📅", label: "Events", desc: "Meetups and gatherings" },
           { icon: "✉️", label: "Messaging", desc: "Private conversations" },
           { icon: "⚡", label: "Points", desc: "Earn by contributing" },

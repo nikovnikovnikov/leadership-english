@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getAllTags } from "@/lib/queries";
 import { CourseForm } from "@/components/admin/course-form";
 import { LessonForm } from "@/components/admin/lesson-form";
 import { DeleteButton } from "@/components/delete-button";
@@ -16,11 +15,10 @@ export default async function AdminCoursePage({
   const { id } = await params;
   await requireAdmin();
   const supabase = await createClient();
-  const tags = await getAllTags();
 
   const { data: course } = await supabase
     .from("courses")
-    .select("id, title, description, published, required_tag_id")
+    .select("id, title, description, published")
     .eq("id", id)
     .single();
   if (!course) notFound();
@@ -28,7 +26,7 @@ export default async function AdminCoursePage({
   const { data: lessons } = await supabase
     .from("lessons")
     .select(
-      "id, course_id, title, description, video_url, order_index, required_points, published",
+      "id, course_id, title, description, video_url, order_index, published",
     )
     .eq("course_id", id)
     .order("order_index", { ascending: true });
@@ -42,7 +40,7 @@ export default async function AdminCoursePage({
         ← All courses
       </Link>
 
-      <CourseForm initial={course} tags={tags} />
+      <CourseForm initial={course} />
 
       <div>
         <div className="mb-2 flex items-center justify-between">
@@ -69,11 +67,6 @@ export default async function AdminCoursePage({
                 <span className="truncate text-sm font-medium hover:text-[var(--primary)]">
                   {lesson.title}
                 </span>
-                {lesson.required_points > 0 && (
-                  <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
-                    {lesson.required_points} pts
-                  </span>
-                )}
                 {!lesson.published && (
                   <span className="shrink-0 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-500">
                     Draft

@@ -20,7 +20,7 @@ export function FeedClient({
   hasAvatar,
   userPoints,
   commentCount,
-  lessonsUnlocked,
+  lessonsCompleted,
   siteName,
   logoInitial,
 }: {
@@ -31,7 +31,7 @@ export function FeedClient({
   hasAvatar: boolean;
   userPoints: number;
   commentCount: number;
-  lessonsUnlocked: number;
+  lessonsCompleted: number;
   siteName: string;
   logoInitial: string;
 }) {
@@ -92,7 +92,7 @@ export function FeedClient({
     postCount: hasPosts ? 1 : 0,
     commentCount,
     points: userPoints,
-    lessonsUnlocked,
+    lessonsCompleted,
   };
 
   const showPrompt = !showWelcome && !hasPosts && !dismissedPrompt;
@@ -141,7 +141,7 @@ export function FeedClient({
         <FeedSort initial={sort} onChange={setSort} />
       </div>
       <p className="text-sm text-stone-500 dark:text-stone-400">
-        Browse threads from all boards. Earn points that unlock lessons.
+        Browse threads and conversations from the whole community.
       </p>
 
       {/* Board filter */}

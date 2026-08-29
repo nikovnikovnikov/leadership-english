@@ -14,7 +14,7 @@ const VALID_FONT_PAIRS = ["soft", "modern", "bold", "classic", "creative"] as co
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
-  const name = settings.site_name || SITE_NAME;
+  const name = SITE_NAME;
   return {
     title: name,
     description: settings.site_tagline || "A small, private community for learning and conversation.",

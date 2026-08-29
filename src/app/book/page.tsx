@@ -1,10 +1,9 @@
-import { getSettings } from "@/lib/queries";
+import { SITE_NAME } from "@/lib/config";
 
 export const metadata = { title: "Book a Private Lesson" };
 
 export default async function BookPage() {
-  const settings = await getSettings();
-  const siteName = settings.site_name || "Sanctum";
+  const siteName = SITE_NAME;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">

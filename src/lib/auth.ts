@@ -14,6 +14,7 @@ export type CurrentProfile = {
   youtube_url: string | null;
   custom_link_url: string | null;
   custom_link_label: string | null;
+  assessment_skipped_at: string | null;
 };
 
 export async function getCurrentProfile(): Promise<CurrentProfile | null> {
@@ -25,7 +26,7 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, username, display_name, avatar_url, is_admin, role, instagram_url, substack_url, x_url, youtube_url, custom_link_url, custom_link_label")
+    .select("id, username, display_name, avatar_url, is_admin, role, instagram_url, substack_url, x_url, youtube_url, custom_link_url, custom_link_label, assessment_skipped_at")
     .eq("id", user.id)
     .single();
 
@@ -51,7 +52,7 @@ export async function requireUser() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, username, display_name, avatar_url, is_admin, role, instagram_url, substack_url, x_url, youtube_url, custom_link_url, custom_link_label")
+    .select("id, username, display_name, avatar_url, is_admin, role, instagram_url, substack_url, x_url, youtube_url, custom_link_url, custom_link_label, assessment_skipped_at")
     .eq("id", user.id)
     .maybeSingle();
 

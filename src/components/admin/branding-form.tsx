@@ -12,9 +12,7 @@ import {
 } from "@/lib/appearance";
 
 const TEXT_FIELDS = [
-  { key: "site_name", label: "Site Name", placeholder: "Sanctum", description: "Displayed in the navigation, footer, emails, and browser tab." },
   { key: "site_tagline", label: "Tagline", placeholder: "A private community for growth", description: "Shown below the site name on the landing page and used as the meta description." },
-  { key: "logo_initial", label: "Logo Letter", placeholder: "S", description: "Single character displayed in the logo badge." },
   { key: "landing_heading", label: "Landing Heading", placeholder: "A space built for real growth", description: "Main headline on the landing page. Leave blank for default." },
   { key: "landing_subtext", label: "Landing Subtext", placeholder: "Join a community of people...", description: "Supporting paragraph on the landing page. Leave blank for default." },
   { key: "signup_heading", label: "Signup Heading", placeholder: "Join {name}", description: "Heading on the signup page. Use {name} to insert the site name." },

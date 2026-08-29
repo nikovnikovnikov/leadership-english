@@ -23,7 +23,7 @@ export type OnboardingProgress = {
   postCount: number;
   commentCount: number;
   points: number;
-  lessonsUnlocked: number;
+  lessonsCompleted: number;
 };
 
 const CHECKLIST = [
@@ -48,14 +48,14 @@ const CHECKLIST = [
   {
     key: "point" as const,
     label: "Earn your first point",
-    sublabel: "Points unlock lessons",
+    sublabel: "Get recognized for your contribution",
     href: "/feed",
   },
   {
     key: "lesson" as const,
-    label: "Unlock a lesson",
-    sublabel: "Browse the course library",
-    href: "/courses",
+    label: "Complete a lesson",
+    sublabel: "Start with the first lesson in any course",
+    href: "/learn",
   },
 ];
 
@@ -73,7 +73,7 @@ function isDone(
     case "point":
       return progress.points > 0;
     case "lesson":
-      return progress.lessonsUnlocked > 0;
+      return progress.lessonsCompleted > 0;
     default:
       return false;
   }

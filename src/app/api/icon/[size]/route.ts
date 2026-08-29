@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { SITE_LOGO_INITIAL } from "@/lib/config";
 import { getSettings } from "@/lib/queries";
 
 export async function GET(
@@ -11,7 +12,7 @@ export async function GET(
   const rx = Math.round(px * 0.167);
 
   const settings = await getSettings();
-  const initial = (settings.logo_initial || "S").slice(0, 1);
+  const initial = SITE_LOGO_INITIAL.slice(0, 1);
   const color = settings.primary_color || "#059669";
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 ${px} ${px}">

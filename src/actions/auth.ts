@@ -14,10 +14,26 @@ export async function login(
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: safeDbError(error) };
 
-  redirect("/feed");
+  const userId = data.user?.id;
+  if (!userId) return { error: "We couldn't log you in. Please try again." };
+
+  // First time through setup → finish profile creation.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!profile) redirect("/setup");
+
+  // Admins skip the placement test entirely.
+  if (profile.role === "admin") redirect("/learn");
+
+  // Members without a result (or who skipped) are routed through /assessment,
+  // which sends them home with a nudge.
+  redirect("/assessment");
 }
 
 export async function signup(
@@ -231,7 +247,10 @@ export async function completeSetup(
     }
   } catch { /* best effort */ }
 
-  redirect("/feed");
+  if (isAdmin) redirect("/learn");
+
+  // New members land on the placement test first.
+  redirect("/assessment");
 }
 
 export async function logout() {

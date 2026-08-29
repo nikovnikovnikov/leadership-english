@@ -11,6 +11,7 @@ import type { ProfileRef } from "@/lib/queries";
 
 const NAV_LINKS = [
   { href: "/feed", label: "Feed" },
+  { href: "/learn", label: "Learn" },
   { href: "/board", label: "Board" },
   { href: "/events", label: "Events" },
   { href: "/courses", label: "Courses" },

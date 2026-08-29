@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { requireUser } from "@/lib/auth";
+import { SITE_NAME, SITE_LOGO_INITIAL } from "@/lib/config";
 import { getFeedThreads, getSettings, getCategories } from "@/lib/queries";
 import { FeedComposer } from "@/components/feed/post-composer";
 import { FeedClient } from "@/components/feed/feed-client";
@@ -41,10 +42,9 @@ export default async function FeedPage() {
       .select("points", { count: "exact" })
       .eq("user_id", profile.id),
     supabase
-      .from("course_progress")
+      .from("lesson_progress")
       .select("id", { count: "exact", head: true })
-      .eq("user_id", profile.id)
-      .eq("completed", true),
+      .eq("user_id", profile.id),
   ]);
 
   const userPoints = (pointsRes.data ?? []).reduce((sum, row) => sum + (row.points ?? 0), 0);
@@ -80,9 +80,9 @@ export default async function FeedPage() {
             hasAvatar={!!profile.avatar_url}
             userPoints={userPoints}
             commentCount={replyCountRes.count ?? 0}
-            lessonsUnlocked={lessonsRes.count ?? 0}
-            siteName={settings.site_name || "Sanctum"}
-            logoInitial={settings.logo_initial || "S"}
+            lessonsCompleted={lessonsRes.count ?? 0}
+            siteName={SITE_NAME}
+            logoInitial={SITE_LOGO_INITIAL}
           />
         </div>
 

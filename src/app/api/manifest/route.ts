@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { SITE_NAME } from "@/lib/config";
 import { getSettings } from "@/lib/queries";
 
 export async function GET() {
   const settings = await getSettings();
-  const name = settings.site_name || "Sanctum";
+  const name = SITE_NAME;
   const tagline = settings.site_tagline || "A private community for learning and conversation.";
   const color = settings.primary_color || "#059669";
 

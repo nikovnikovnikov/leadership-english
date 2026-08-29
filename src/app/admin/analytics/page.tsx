@@ -1,12 +1,15 @@
 import { requireAdmin } from "@/lib/auth";
-import { getAnalytics } from "@/lib/queries";
+import { getAnalytics, getCourseAnalytics } from "@/lib/queries";
 import { BarChart } from "@/components/admin/bar-chart";
 
 export const metadata = { title: "Analytics — Admin" };
 
 export default async function AdminAnalyticsPage() {
   await requireAdmin();
-  const analytics = await getAnalytics();
+  const [analytics, courseAnalytics] = await Promise.all([
+    getAnalytics(),
+    getCourseAnalytics(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -101,6 +104,111 @@ export default async function AdminAnalyticsPage() {
               );
             })}
           </div>
+        )}
+      </div>
+
+      {/* Course performance */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-400">
+            Course performance
+          </h3>
+          <p className="mt-1 text-xs text-stone-400 dark:text-stone-400">
+            Completion per lesson, drop-off between lessons, and median time
+            from first to last completed lesson (for users who finish).
+          </p>
+        </div>
+
+        {courseAnalytics.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-stone-300 dark:border-stone-800 bg-white dark:bg-stone-900 p-8 text-center">
+            <p className="text-sm text-stone-400 dark:text-stone-400">
+              No published courses yet.
+            </p>
+          </div>
+        ) : (
+          courseAnalytics.map((course) => (
+            <div
+              key={course.courseId}
+              className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-5 shadow-sm"
+            >
+              <h4 className="font-semibold">{course.title}</h4>
+
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-xl bg-stone-50 dark:bg-white/5 p-3">
+                  <p className="text-xs text-stone-400 dark:text-stone-400">Started</p>
+                  <p className="mt-0.5 text-lg font-bold">{course.startedUsers}</p>
+                </div>
+                <div className="rounded-xl bg-stone-50 dark:bg-white/5 p-3">
+                  <p className="text-xs text-stone-400 dark:text-stone-400">Completed</p>
+                  <p className="mt-0.5 text-lg font-bold text-[var(--primary)] dark:text-[var(--primary)]">
+                    {course.completedUsers}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-stone-50 dark:bg-white/5 p-3">
+                  <p className="text-xs text-stone-400 dark:text-stone-400">Completion rate</p>
+                  <p className="mt-0.5 text-lg font-bold">
+                    {course.completionRateOfMembers}%{" "}
+                    <span className="text-xs font-normal text-stone-400">of members</span>
+                  </p>
+                  <p className="text-xs text-stone-400 dark:text-stone-400">
+                    {course.completionRateOfStarters}% of starters
+                  </p>
+                </div>
+                <div className="rounded-xl bg-stone-50 dark:bg-white/5 p-3">
+                  <p className="text-xs text-stone-400 dark:text-stone-400">
+                    Median time to complete
+                  </p>
+                  <p className="mt-0.5 text-lg font-bold">
+                    {course.medianMinutesToComplete !== null
+                      ? `${course.medianMinutesToComplete} min`
+                      : "—"}
+                  </p>
+                </div>
+              </div>
+
+              {course.lessonCount > 0 && (
+                <div className="mt-4 space-y-2.5">
+                  {course.lessons.map((lesson, i) => {
+                    const max = Math.max(course.startedUsers, 1);
+                    const width = (lesson.completions / max) * 100;
+                    const dropOff =
+                      i < course.lessons.length - 1
+                        ? lesson.completions - course.lessons[i + 1].completions
+                        : 0;
+
+                    return (
+                      <div key={lesson.lessonId} className="flex items-center gap-3">
+                        <span className="w-8 shrink-0 text-center text-xs text-stone-400">
+                          {lesson.orderIndex}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate text-xs font-medium">
+                              {lesson.title}
+                            </span>
+                            <span className="shrink-0 text-xs text-stone-400 dark:text-stone-400">
+                              {lesson.completions} complete
+                              {dropOff > 0 && (
+                                <span className="ml-2 text-amber-600 dark:text-amber-400">
+                                  -{dropOff} next
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          <div className="mt-1 h-2 overflow-hidden rounded-full bg-stone-100 dark:bg-white/5">
+                            <div
+                              className="h-full rounded-full bg-[var(--primary)]"
+                              style={{ width: `${Math.max(width, 2)}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ))
         )}
       </div>
     </div>

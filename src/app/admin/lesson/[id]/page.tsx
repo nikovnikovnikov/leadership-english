@@ -16,7 +16,7 @@ export default async function AdminLessonPage({
   const { data: lesson } = await supabase
     .from("lessons")
     .select(
-      "id, course_id, title, description, video_url, order_index, required_points, published, notion_page_id",
+      "id, course_id, title, description, video_url, order_index, published, notion_page_id",
     )
     .eq("id", id)
     .single();

@@ -575,14 +575,14 @@ END $$;
 -- ============================================================================
 
 INSERT INTO public.settings (key, value) VALUES
-  ('community_start_here', 'Welcome to **Sanctum**! This is a space for thoughtful conversation and learning. Here''s how to get started:
+  ('community_start_here', 'Welcome to **Leadership English Community**! This is a space for thoughtful conversation and learning. Here''s how to get started:
 
 1. **Introduce yourself** — Post in the General category and tell us who you are.
-2. **Explore the courses** — Unlock lessons by earning points through participation.
-3. **Join the conversation** — Comment on posts, reply in threads, and engage with others.
+2. **Explore the courses** — Every lesson is open. Start wherever you like and work at your own pace.
+3. **Join the conversation** — Comment on posts, reply in threads, and discuss lessons with the community.
 
-Earn points by posting, commenting, and receiving likes. These points unlock access to gated course lessons.'),
-  ('community_about', 'Sanctum is a private community for people who want to go deeper. No algorithms, no ads, no noise — just real conversation between real people.'),
+Your points recognize how much you show up and share — post, comment, and receive likes to build yours up.'),
+  ('community_about', 'Leadership English Community is a private community for people who want to go deeper. No algorithms, no ads, no noise — just real conversation between real people.'),
   ('community_rules', '## Community Guidelines
 
 **Be respectful.** Treat everyone with dignity. Disagreement is welcome; personal attacks are not.
@@ -997,3 +997,78 @@ EXCEPTION WHEN duplicate_object THEN null; END $$;
 -- Cleanup
 -- ============================================================================
 DROP FUNCTION IF EXISTS _safe_add_col(text, text, text);
+
+-- ============================================================================
+-- Lesson comments (migration 0022)
+-- ============================================================================
+create table if not exists public.lesson_comments (
+  id         uuid primary key default gen_random_uuid(),
+  lesson_id  uuid not null references public.lessons (id) on delete cascade,
+  author_id  uuid not null references public.profiles (id) on delete cascade,
+  parent_id  uuid references public.lesson_comments (id) on delete cascade,
+  body       text not null check (char_length(body) between 1 and 2000),
+  created_at timestamptz not null default now()
+);
+alter table public.lesson_comments enable row level security;
+DO $$ BEGIN CREATE POLICY "lesson_comments select" ON public.lesson_comments
+    FOR SELECT USING (auth.role() = 'authenticated');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "lesson_comments insert" ON public.lesson_comments
+    FOR INSERT WITH CHECK (author_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "lesson_comments delete" ON public.lesson_comments
+    FOR DELETE USING (author_id = auth.uid() or public.is_admin());
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+create index if not exists lesson_comments_lesson_idx on public.lesson_comments (lesson_id, created_at);
+
+-- ============================================================================
+-- CEFR placement assessment (migration 0023)
+-- ============================================================================
+create table if not exists public.user_assessments (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  version text not null default '1.0',
+  score_raw int not null,
+  score_scaled int not null,
+  band text not null check (band in ('A1','A2','B1','B2','C1','C2')),
+  skill_scores jsonb not null,
+  answers jsonb not null,
+  taken_at timestamptz not null default now()
+);
+create index if not exists idx_user_assessments_user on user_assessments(user_id, taken_at desc);
+alter table public.user_assessments enable row level security;
+DO $$ BEGIN CREATE POLICY "Assessment select own or admin"
+  ON public.user_assessments FOR SELECT
+  USING (user_id = auth.uid() or exists (select 1 from profiles where profiles.id = auth.uid() and profiles.is_admin = true));
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "Assessment insert own"
+  ON public.user_assessments FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+alter table profiles add column if not exists assessment_skipped_at timestamptz;
+
+create or replace function public.record_assessment(
+  p_version text, p_score_raw int, p_score_scaled int, p_band text, p_skill_scores jsonb, p_answers jsonb
+) returns text language plpgsql security definer set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_tag_id uuid;
+begin
+  if v_user_id is null then raise exception 'not authenticated'; end if;
+  if p_band not in ('A1','A2','B1','B2','C1','C2') then raise exception 'invalid band'; end if;
+  insert into user_assessments (user_id, version, score_raw, score_scaled, band, skill_scores, answers)
+  values (v_user_id, p_version, p_score_raw, p_score_scaled, p_band, p_skill_scores, p_answers);
+  insert into tags (name, visibility)
+  values ('CEFR ' || p_band, 'admin')
+  on conflict (name) do update set name = excluded.name
+  returning id into v_tag_id;
+  delete from profile_tags
+  where profile_id = v_user_id
+    and tag_id in (select id from tags where name like 'CEFR %');
+  insert into profile_tags (profile_id, tag_id, assigned_by)
+  values (v_user_id, v_tag_id, v_user_id)
+  on conflict (profile_id, tag_id) do nothing;
+  return p_band;
+end;
+$$;

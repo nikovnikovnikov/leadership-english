@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { SITE_NAME, SITE_LOGO_INITIAL } from "@/lib/config";
 
 const STEPS = [
   {
@@ -37,9 +38,9 @@ function PointsStep() {
           2
         </span>
         <div>
-          <p className="text-sm font-medium text-stone-800 dark:text-stone-100">Unlock lessons</p>
+          <p className="text-sm font-medium text-stone-800 dark:text-stone-100">Start a lesson</p>
           <p className="text-xs text-stone-500 dark:text-stone-400">
-            Points unlock access to courses and lessons in the library.
+            Browse the full course library — every lesson is open to you.
           </p>
         </div>
       </div>
@@ -122,7 +123,7 @@ function CtaStep({ siteName }: { siteName: string }) {
         <div>
           <p className="font-medium text-stone-800 dark:text-stone-100">Browse courses</p>
           <p className="text-xs text-stone-500 dark:text-stone-400">
-            See what lessons are available and start earning points to unlock them.
+            See what&apos;s available and start your first lesson whenever you&apos;re ready.
           </p>
         </div>
       </Link>
@@ -131,8 +132,8 @@ function CtaStep({ siteName }: { siteName: string }) {
 }
 
 export function WelcomeModal({
-  siteName = "Sanctum",
-  logoInitial = "S",
+  siteName = SITE_NAME,
+  logoInitial = SITE_LOGO_INITIAL,
 }: {
   siteName?: string;
   logoInitial?: string;

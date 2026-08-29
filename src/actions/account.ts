@@ -1,8 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { SITE_NAME } from "@/lib/config";
 import { createClient } from "@/lib/supabase/server";
-import { getSettings } from "@/lib/queries";
 import { safeDbError } from "@/lib/sanitize";
 
 export type AccountState = {
@@ -64,7 +64,7 @@ export async function exportUserData() {
   const exportData = {
     _meta: {
       exportedAt: new Date().toISOString(),
-      service: (await getSettings()).site_name || "Sanctum",
+      service: SITE_NAME,
       note: "This file contains all personal data we hold about you (GDPR Art 20).",
     },
     email: user.email,

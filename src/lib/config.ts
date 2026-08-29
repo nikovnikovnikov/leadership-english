@@ -1,4 +1,5 @@
-export const SITE_NAME = "Sanctum";
+export const SITE_NAME = "Leadership English Community";
+export const SITE_LOGO_INITIAL = "LE";
 
 export const CATEGORIES = [
   { id: "general", label: "General" },

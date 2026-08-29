@@ -7,7 +7,7 @@ export const revalidate = 60;
 
 export default async function PrivacyPolicyPage() {
   const settings = await getSettings();
-  const name = settings.site_name || SITE_NAME;
+  const name = SITE_NAME;
   const entity = settings.legal_entity_name || "[YOUR NAME OR ENTITY]";
   const email = settings.legal_email || "[YOUR EMAIL]";
   const address = settings.legal_address || "[YOUR ADDRESS]";

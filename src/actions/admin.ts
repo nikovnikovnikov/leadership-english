@@ -59,13 +59,12 @@ export async function createCourse(
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
   const published = formData.get("published") === "on";
-  const requiredTagId = String(formData.get("required_tag_id") ?? "").trim() || null;
 
   if (!title) return { error: "Title is required." };
 
   const { data, error } = await supabase
     .from("courses")
-    .insert({ title, description, published, required_tag_id: requiredTagId })
+    .insert({ title, description, published })
     .select("id")
     .single();
   if (error) return { error: safeDbError(error) };
@@ -83,18 +82,18 @@ export async function updateCourse(
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
   const published = formData.get("published") === "on";
-  const requiredTagId = String(formData.get("required_tag_id") ?? "").trim() || null;
 
   if (!title) return { error: "Title is required." };
 
   const { error } = await supabase
     .from("courses")
-    .update({ title, description, published, required_tag_id: requiredTagId })
+    .update({ title, description, published })
     .eq("id", id);
   if (error) return { error: safeDbError(error) };
 
   revalidatePath("/admin/course/[id]");
   revalidatePath("/courses");
+  revalidatePath("/learn");
   return {};
 }
 
@@ -102,6 +101,8 @@ export async function deleteCourse(id: string) {
   const supabase = await requireAdminUser();
   await supabase.from("courses").delete().eq("id", id);
   revalidatePath("/admin/courses");
+  revalidatePath("/courses");
+  revalidatePath("/learn");
   redirect("/admin/courses");
 }
 
@@ -116,7 +117,6 @@ export async function createLesson(
   const videoUrl = String(formData.get("video_url") ?? "").trim() || null;
   const notionPageId = String(formData.get("notion_page_id") ?? "").trim() || null;
   const orderIndex = Number(formData.get("order_index") ?? 0) || 0;
-  const requiredPoints = Number(formData.get("required_points") ?? 0) || 0;
   const published = formData.get("published") === "on";
 
   if (!title) return { error: "Title is required." };
@@ -128,7 +128,6 @@ export async function createLesson(
     video_url: videoUrl,
     notion_page_id: notionPageId,
     order_index: orderIndex,
-    required_points: requiredPoints,
     published,
   });
   if (error) return { error: safeDbError(error) };
@@ -149,7 +148,6 @@ export async function updateLesson(
   const videoUrl = String(formData.get("video_url") ?? "").trim() || null;
   const notionPageId = String(formData.get("notion_page_id") ?? "").trim() || null;
   const orderIndex = Number(formData.get("order_index") ?? 0) || 0;
-  const requiredPoints = Number(formData.get("required_points") ?? 0) || 0;
   const published = formData.get("published") === "on";
 
   if (!title) return { error: "Title is required." };
@@ -162,7 +160,6 @@ export async function updateLesson(
       video_url: videoUrl,
       notion_page_id: notionPageId,
       order_index: orderIndex,
-      required_points: requiredPoints,
       published,
     })
     .eq("id", id);
@@ -171,6 +168,8 @@ export async function updateLesson(
   revalidatePath(`/admin/lesson/${id}`);
   revalidatePath(`/admin/course/${courseId}`);
   revalidatePath(`/lesson/${id}`);
+  revalidatePath("/courses");
+  revalidatePath("/learn");
   return {};
 }
 
@@ -178,6 +177,8 @@ export async function deleteLesson(id: string, courseId: string) {
   const supabase = await requireAdminUser();
   await supabase.from("lessons").delete().eq("id", id);
   revalidatePath(`/admin/course/${courseId}`);
+  revalidatePath("/courses");
+  revalidatePath("/learn");
 }
 
 export async function updateSettings(
@@ -214,7 +215,7 @@ const ALLOWED_SETTING_KEYS = new Set([
   "points_thread_reply", "points_like_received", "points_daily_cap",
   "community_start_here", "community_about", "community_rules",
   "announcements_enabled", "announcements_title", "announcements_body",
-  "site_name", "site_tagline", "logo_initial", "landing_heading",
+  "site_tagline", "landing_heading",
   "landing_subtext", "signup_heading", "legal_entity_name",
   "legal_email", "legal_address", "legal_jurisdiction", "legal_courts",
   "color_scheme", "font_pairing", "primary_color",
@@ -223,9 +224,7 @@ const ALLOWED_SETTING_KEYS = new Set([
   "yearly_enabled", "waitlist_enabled", "chat_enabled",
 ]);
 
-const URL_SETTING_KEYS = new Set([
-  "logo_initial",
-]);
+const URL_SETTING_KEYS = new Set<string>();
 
 export async function updateSetting(key: string, value: string) {
   const supabase = await requireAdminUser();
@@ -308,9 +307,7 @@ export async function updateBranding(
 ): Promise<AdminActionState> {
   const supabase = await requireAdminUser();
   const keys = [
-    "site_name",
     "site_tagline",
-    "logo_initial",
     "landing_heading",
     "landing_subtext",
     "signup_heading",
