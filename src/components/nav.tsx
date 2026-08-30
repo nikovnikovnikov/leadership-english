@@ -75,7 +75,7 @@ export function Nav({
             )}
           </div>
 
-          <Logo siteName={siteName} logoInitial={logoInitial} />
+          <Logo siteName={siteName} logoInitial={logoInitial} hideNameOnMobile />
         </div>
       </header>
 

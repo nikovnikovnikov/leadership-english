@@ -4,16 +4,22 @@ import { SITE_NAME, SITE_LOGO_INITIAL } from "@/lib/config";
 export function Logo({
   siteName = SITE_NAME,
   logoInitial = SITE_LOGO_INITIAL,
+  hideNameOnMobile = false,
 }: {
   siteName?: string;
   logoInitial?: string;
+  hideNameOnMobile?: boolean;
 }) {
   return (
-    <Link href="/feed" className="flex items-center gap-2">
-      <span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--primary)] text-sm font-bold text-white">
+    <Link href="/feed" className="flex min-w-0 items-center gap-2">
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[var(--primary)] text-sm font-bold text-white">
         {logoInitial}
       </span>
-      <span className="text-sm font-semibold tracking-tight dark:text-stone-100">{siteName}</span>
+      <span
+        className={`${hideNameOnMobile ? "hidden sm:inline" : ""} truncate text-sm font-semibold tracking-tight dark:text-stone-100`}
+      >
+        {siteName}
+      </span>
     </Link>
   );
 }
