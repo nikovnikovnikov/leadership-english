@@ -320,8 +320,9 @@ export async function getCourses() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("courses")
-    .select("id, title, description, created_at")
+    .select("id, title, description, created_at, sort_order")
     .eq("published", true)
+    .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return data ?? [];
@@ -1005,6 +1006,7 @@ export async function getCourseAnalytics(): Promise<CourseAnalytics[]> {
     .from("courses")
     .select("id, title")
     .eq("published", true)
+    .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });
   if (!courses?.length) return [];
 

@@ -106,6 +106,36 @@ export async function deleteCourse(id: string) {
   redirect("/admin/courses");
 }
 
+/** Swap a course with its neighbour in the admin-defined ordering. */
+export async function moveCourse(id: string, direction: "up" | "down") {
+  const supabase = await requireAdminUser();
+  const { data: courses } = await supabase
+    .from("courses")
+    .select("id, sort_order")
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+  if (!courses || courses.length < 2) return;
+
+  const index = courses.findIndex((c) => c.id === id);
+  const swapIndex = direction === "up" ? index - 1 : index + 1;
+  if (index < 0 || swapIndex < 0 || swapIndex >= courses.length) return;
+
+  const current = courses[index];
+  const neighbour = courses[swapIndex];
+  await supabase
+    .from("courses")
+    .update({ sort_order: neighbour.sort_order })
+    .eq("id", current.id);
+  await supabase
+    .from("courses")
+    .update({ sort_order: current.sort_order })
+    .eq("id", neighbour.id);
+
+  revalidatePath("/admin/courses");
+  revalidatePath("/courses");
+  revalidatePath("/learn");
+}
+
 export async function createLesson(
   _prev: AdminActionState,
   formData: FormData,

@@ -1324,3 +1324,19 @@ begin
   return p_band;
 end;
 $$;
+-- ---------------------------------------------------------------------------
+-- 0024: Admin-defined course ordering (sort_order)
+-- ---------------------------------------------------------------------------
+
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0;
+
+WITH ranked AS (
+  SELECT id, row_number() OVER (ORDER BY created_at DESC) AS rn
+  FROM public.courses
+)
+UPDATE public.courses c
+SET sort_order = r.rn
+FROM ranked r
+WHERE r.id = c.id AND c.sort_order = 0;
+
+CREATE INDEX IF NOT EXISTS courses_sort_order_idx ON public.courses (sort_order);
