@@ -12,6 +12,7 @@ import type { ProfileRef } from "@/lib/queries";
 const NAV_LINKS = [
   { href: "/feed", label: "Feed" },
   { href: "/learn", label: "Learn" },
+  { href: "/assessment", label: "Assessment" },
   { href: "/board", label: "Board" },
   { href: "/events", label: "Events" },
   { href: "/courses", label: "Courses" },
@@ -72,9 +73,11 @@ export function MobileMenu({
 
   if (!open) return null;
 
-  const links: ReadonlyArray<{ href: string; label: string }> = chatEnabled
-    ? [...NAV_LINKS.slice(0, 2), CHAT_LINK, ...NAV_LINKS.slice(2)]
-    : NAV_LINKS;
+  const links: ReadonlyArray<{ href: string; label: string }> = (
+    chatEnabled
+      ? [...NAV_LINKS.slice(0, 2), CHAT_LINK, ...NAV_LINKS.slice(2)]
+      : [...NAV_LINKS]
+  ).filter((link) => !(link.href === "/assessment" && profile.role === "admin"));
 
   return (
     <div className="fixed inset-0 z-50">

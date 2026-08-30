@@ -4,13 +4,12 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import {
   PUBLIC_QUESTIONS,
-  CEFR_LEVELS,
   type CefrLevel,
   type PublicAssessmentQuestion,
 } from "@/lib/assessment/questions";
-import { bandDescription } from "@/lib/assessment/cefr";
 import { skipAssessment, submitAssessment } from "@/actions/assessment";
 import type { AssessmentState } from "@/actions/assessment";
+import { ResultCard } from "@/components/assessment/result-card";
 
 const SKILL_LABEL: Record<PublicAssessmentQuestion["skill"], string> = {
   grammar: "Grammar",
@@ -160,11 +159,18 @@ export function AssessmentClient({
       )}
 
       {state.result && (
-        <ResultScreen
+        <ResultCard
+          band={state.result.band}
           raw={state.result.raw}
           scaled={state.result.scaled}
-          band={state.result.band}
           skills={state.result.skills}
+          primaryHref="/learn"
+          primaryLabel={
+            state.result.raw === 40
+              ? "Amazing — continue to your dashboard"
+              : "Continue to your dashboard"
+          }
+          retakeHref="/assessment?take=1"
         />
       )}
     </div>
@@ -237,100 +243,6 @@ function Intro({
           </Link>
         </p>
       )}
-    </div>
-  );
-}
-
-function ResultScreen({
-  raw,
-  scaled,
-  band,
-  skills,
-}: {
-  raw: number;
-  scaled: number;
-  band: CefrLevel;
-  skills: { grammar: number; vocabulary: number; reading: number };
-}) {
-  const { label, summary } = bandDescription(band);
-  const levelIndex = CEFR_LEVELS.indexOf(band) + 1;
-
-  return (
-    <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-6 shadow-sm">
-      <p className="text-sm font-medium text-[var(--primary)]">Your result</p>
-      <div className="mt-2 flex flex-wrap items-end gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-wider text-stone-400">
-            CEFR level
-          </p>
-          <p className="text-5xl font-bold tracking-tight dark:text-stone-100">
-            {band}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs uppercase tracking-wider text-stone-400">
-            Scaled score
-          </p>
-          <p className="text-3xl font-semibold dark:text-stone-100">
-            {scaled}/100
-          </p>
-        </div>
-        <div>
-          <p className="text-xs uppercase tracking-wider text-stone-400">
-            Correct
-          </p>
-          <p className="text-3xl font-semibold dark:text-stone-100">
-            {raw}/40
-          </p>
-        </div>
-      </div>
-
-      <p className="mt-3 text-sm font-medium dark:text-stone-100">
-        {label} · level {levelIndex} of 6
-      </p>
-      <p className="mt-2 text-sm leading-relaxed text-stone-600 dark:text-stone-300">
-        {summary}
-      </p>
-
-      <div className="mt-5 grid grid-cols-3 gap-3">
-        {(
-          [
-            ["Grammar", skills.grammar],
-            ["Vocabulary", skills.vocabulary],
-            ["Reading", skills.reading],
-          ] as const
-        ).map(([label2, value]) => (
-          <div
-            key={label2}
-            className="rounded-xl bg-stone-50 dark:bg-white/5 p-3"
-          >
-            <p className="text-[11px] uppercase tracking-wider text-stone-400">
-              {label2}
-            </p>
-            <p className="mt-0.5 text-sm font-semibold dark:text-stone-100">
-              {value}%
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <p className="mt-4 text-xs text-stone-400 dark:text-stone-400">
-        This is a quick placement estimate, not a certified exam. Your level is
-        recorded for the community team so we can suggest the right content.
-      </p>
-
-      <Link
-        href="/learn"
-        className="mt-6 block w-full rounded-lg bg-[var(--primary)] px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:brightness-90"
-      >
-        {raw === 40 ? "Amazing — continue to your dashboard" : "Continue to your dashboard"}
-      </Link>
-      <Link
-        href="/assessment?retake=1"
-        className="mt-2 block text-center text-xs font-medium text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
-      >
-        Retake test
-      </Link>
     </div>
   );
 }

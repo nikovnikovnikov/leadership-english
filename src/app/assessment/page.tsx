@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AssessmentClient } from "@/components/assessment/assessment-client";
+import { ResultCard } from "@/components/assessment/result-card";
 
 export const metadata = { title: "English Assessment" };
 export const dynamic = "force-dynamic";
@@ -9,15 +10,16 @@ export const dynamic = "force-dynamic";
 export default async function AssessmentPage({
   searchParams,
 }: {
-  searchParams: Promise<{ retake?: string }>;
+  searchParams: Promise<{ take?: string; retake?: string }>;
 }) {
   const profile = await requireUser();
-  const { retake } = await searchParams;
+  const { take, retake } = await searchParams;
+  const start = take === "1" || retake === "1";
   const supabase = await createClient();
 
   const { data: latest } = await supabase
     .from("user_assessments")
-    .select("band, score_scaled, taken_at")
+    .select("band, score_raw, score_scaled, skill_scores, taken_at")
     .eq("user_id", profile.id)
     .order("taken_at", { ascending: false })
     .limit(1)
@@ -25,17 +27,35 @@ export default async function AssessmentPage({
 
   const alreadyAssessed = Boolean(latest);
 
-  // Admins are not gated; they may reach it explicitly via ?retake=1.
-  if (profile.role === "admin" && !retake) redirect("/learn");
-  // Members who have already completed or skipped it go home unless retaking.
-  if (alreadyAssessed && !retake) redirect("/learn");
-  if (profile.assessment_skipped_at && !retake) redirect("/learn");
+  // Admins are not gated; they may take it deliberately via ?take=1.
+  if (profile.role === "admin" && !start) redirect("/learn");
 
+  // First time (or a fresh attempt): run the test itself.
+  if (start || !latest) {
+    return (
+      <AssessmentClient
+        userName={profile.display_name ?? profile.username}
+        alreadyAssessed={alreadyAssessed}
+        previousLevel={latest?.band ?? null}
+      />
+    );
+  }
+
+  const skills = latest.skill_scores ?? { grammar: 0, vocabulary: 0, reading: 0 };
+
+  // Returning member: show their latest result with the option to retake.
   return (
-    <AssessmentClient
-      userName={profile.display_name ?? profile.username}
-      alreadyAssessed={alreadyAssessed}
-      previousLevel={latest?.band ?? null}
-    />
+    <div className="mx-auto max-w-2xl space-y-6">
+      <ResultCard
+        band={latest.band}
+        raw={latest.score_raw}
+        scaled={latest.score_scaled}
+        skills={skills}
+        takenAt={latest.taken_at}
+        primaryHref="/learn"
+        primaryLabel="Back to your dashboard"
+        retakeHref="/assessment?take=1"
+      />
+    </div>
   );
 }
