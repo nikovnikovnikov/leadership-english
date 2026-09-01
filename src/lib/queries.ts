@@ -1336,6 +1336,66 @@ export async function getPublicTagsForUser(profileId: string): Promise<{ id: str
     .map((tag) => ({ id: tag.id, name: tag.name }));
 }
 
+// ── "Completed with a tutor" credentials ─────────────────────────────────────
+
+type TutorCompletionCourse = {
+  id: string;
+  title: string;
+};
+
+type TutorCompletionMember = {
+  id: string;
+  user_id: string;
+  note: string | null;
+  created_at: string;
+  profile: ProfileRef | null;
+};
+
+/** Course IDs a member has been marked as completing with a tutor. */
+export async function getTutorCompletedCourseIds(userId: string): Promise<Set<string>> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("course_tutor_completions")
+    .select("course_id")
+    .eq("user_id", userId);
+  return new Set(data?.map((r) => r.course_id) ?? []);
+}
+
+/** Courses a member completed with a tutor (shown as badges on their profile). */
+export async function getTutorCompletionCourses(userId: string): Promise<TutorCompletionCourse[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("course_tutor_completions")
+    .select("course:courses!course_tutor_completions_course_id_fkey(id, title)")
+    .eq("user_id", userId);
+  return (data ?? [])
+    .map((row) => (row as unknown as { course: TutorCompletionCourse | null }).course)
+    .filter((course): course is TutorCompletionCourse => Boolean(course));
+}
+
+/** Members recorded as completing a specific course with a tutor (admin view). */
+export async function getTutorCompletionsForCourse(courseId: string): Promise<TutorCompletionMember[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("course_tutor_completions")
+    .select(
+      "id, user_id, note, created_at, profile:profiles!course_tutor_completions_user_id_fkey(id, username, display_name, avatar_url)",
+    )
+    .eq("course_id", courseId)
+    .order("created_at", { ascending: false });
+  return (data ?? [])
+    .map((row) =>
+      (row as unknown as {
+        id: string;
+        user_id: string;
+        note: string | null;
+        created_at: string;
+        profile: ProfileRef | null;
+      }),
+    )
+    .filter((r) => r.profile !== null);
+}
+
 // ── User profile feeds ──────────────────────────────────────────────────────
 
 export async function getUserFeedPosts(

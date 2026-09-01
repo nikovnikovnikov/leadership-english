@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { CourseForm } from "@/components/admin/course-form";
 import { LessonForm } from "@/components/admin/lesson-form";
 import { DeleteButton } from "@/components/delete-button";
+import { TutorCompletionManager, type RecordedMember } from "@/components/admin/tutor-completion-manager";
+import { getTutorCompletionsForCourse } from "@/lib/queries";
 import { deleteCourse, deleteLesson } from "@/actions/admin";
 
 export const metadata = { title: "Manage course" };
@@ -30,6 +32,25 @@ export default async function AdminCoursePage({
     )
     .eq("course_id", id)
     .order("order_index", { ascending: true });
+
+  const [{ data: completionRows }, { data: allProfiles }] = await Promise.all([
+    getTutorCompletionsForCourse(id).then((rows) => ({
+      data: rows,
+      error: null,
+    })),
+    supabase
+      .from("profiles")
+      .select("id, username, display_name")
+      .order("display_name", { ascending: true }),
+  ]);
+
+  const recorded = (completionRows ?? []).map((r) => ({
+    id: r.profile!.id,
+    username: r.profile!.username,
+    display_name: r.profile!.display_name,
+    completionId: r.id,
+    note: r.note,
+  }));
 
   return (
     <div className="space-y-6">
@@ -85,6 +106,16 @@ export default async function AdminCoursePage({
           )}
         </div>
       </div>
+
+      <TutorCompletionManager
+        courseId={course.id}
+        recorded={recorded as RecordedMember[]}
+        members={(allProfiles ?? []).map((p) => ({
+          id: p.id,
+          username: p.username,
+          display_name: p.display_name,
+        }))}
+      />
 
       <div>
         <h2 className="mb-2 font-semibold">Add a lesson</h2>

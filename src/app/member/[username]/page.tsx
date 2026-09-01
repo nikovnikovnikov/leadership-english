@@ -6,6 +6,7 @@ import {
   getTotalPoints,
   getActivity,
   getPublicTagsForUser,
+  getTutorCompletionCourses,
   getUserFeedPosts,
   getUserThreads,
   getActivityHeatmap,
@@ -47,7 +48,7 @@ export default async function MemberPage({
 
   if (!member) notFound();
 
-  const [points, activity, blockData, publicTags, feedPosts, threads, heatmap] =
+  const [points, activity, blockData, publicTags, tutorCourses, feedPosts, threads, heatmap] =
     await Promise.all([
       getTotalPoints(member.id),
       getActivity(member.id, 20),
@@ -58,6 +59,7 @@ export default async function MemberPage({
         .eq("blocked_id", member.id)
         .maybeSingle(),
       getPublicTagsForUser(member.id),
+      getTutorCompletionCourses(member.id),
       getUserFeedPosts(member.id, currentProfile.id, 10),
       getUserThreads(member.id, 10),
       getActivityHeatmap(member.id),
@@ -96,6 +98,19 @@ export default async function MemberPage({
                   >
                     {tag.name}
                   </span>
+                ))}
+              </div>
+            )}
+            {tutorCourses.length > 0 && (
+              <div className="mt-1 flex flex-wrap gap-1">
+                {tutorCourses.map((course) => (
+                  <Link
+                    key={course.id}
+                    href={`/course/${course.id}`}
+                    className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 transition hover:brightness-95 dark:bg-emerald-500/15 dark:text-emerald-400"
+                  >
+                    Completed with a tutor — {course.title}
+                  </Link>
                 ))}
               </div>
             )}

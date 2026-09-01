@@ -1665,3 +1665,35 @@ FROM ranked r
 WHERE r.id = c.id AND c.sort_order = 0;
 
 CREATE INDEX IF NOT EXISTS courses_sort_order_idx ON public.courses (sort_order);
+
+-- ---------------------------------------------------------------------------
+-- 0025: Public "completed a course with a tutor" credential
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.course_tutor_completions (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references public.profiles (id) on delete cascade,
+  course_id   uuid not null references public.courses (id) on delete cascade,
+  note        text,
+  assigned_by uuid references public.profiles (id) on delete set null,
+  created_at  timestamptz not null default now(),
+  unique (user_id, course_id)
+);
+
+create index if not exists course_tutor_completions_user_idx
+  on public.course_tutor_completions (user_id);
+create index if not exists course_tutor_completions_course_idx
+  on public.course_tutor_completions (course_id);
+
+alter table public.course_tutor_completions enable row level security;
+
+create policy "course_tutor_completions select"
+  on public.course_tutor_completions
+  for select
+  using (auth.role() = 'authenticated');
+
+create policy "course_tutor_completions admin all"
+  on public.course_tutor_completions
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());

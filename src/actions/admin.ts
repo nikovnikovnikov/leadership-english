@@ -136,6 +136,38 @@ export async function moveCourse(id: string, direction: "up" | "down") {
   revalidatePath("/learn");
 }
 
+/** Record that a member completed a course with a tutor (public credential). */
+export async function addTutorCompletion(courseId: string, userId: string, note: string) {
+  const supabase = await requireAdminUser();
+  const trimmed = note.trim();
+  if (trimmed.length > 280) return;
+
+  const { error } = await supabase
+    .from("course_tutor_completions")
+    .insert({
+      course_id: courseId,
+      user_id: userId,
+      note: trimmed || null,
+      assigned_by: (await supabase.auth.getUser()).data.user?.id ?? null,
+    });
+  if (error?.code === "23505") return;
+
+  revalidatePath("/admin/courses");
+  revalidatePath("/admin/course/[id]", "page");
+  revalidatePath("/courses");
+  revalidatePath("/member/[username]", "page");
+}
+
+/** Remove a "completed with a tutor" credential. */
+export async function removeTutorCompletion(id: string) {
+  const supabase = await requireAdminUser();
+  await supabase.from("course_tutor_completions").delete().eq("id", id);
+  revalidatePath("/admin/courses");
+  revalidatePath("/admin/course/[id]", "page");
+  revalidatePath("/courses");
+  revalidatePath("/member/[username]", "page");
+}
+
 export async function createLesson(
   _prev: AdminActionState,
   formData: FormData,

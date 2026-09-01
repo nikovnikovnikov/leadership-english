@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { getCourses, getLessons, getCompletedLessonIds } from "@/lib/queries";
+import { getCourses, getLessons, getCompletedLessonIds, getTutorCompletedCourseIds } from "@/lib/queries";
 
 export const metadata = { title: "Courses" };
 
 export default async function CoursesPage() {
   const profile = await requireUser();
-  const [courses, completed] = await Promise.all([
+  const [courses, completed, tutorCompleted] = await Promise.all([
     getCourses(),
     getCompletedLessonIds(profile.id),
+    getTutorCompletedCourseIds(profile.id),
   ]);
 
   const coursesWithProgress = await Promise.all(
@@ -46,6 +47,7 @@ export default async function CoursesPage() {
             const started = completedCount > 0;
             const finished = totalLessons > 0 && completedCount >= totalLessons;
             const nextLesson = lessons.find((l) => !completed.has(l.id)) ?? null;
+            const isTutorCompleted = tutorCompleted.has(course.id);
 
             return (
               <Link
@@ -66,11 +68,17 @@ export default async function CoursesPage() {
                   <div className="mt-4">
                     <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400">
                       <span>
-                        {finished
-                          ? "Course complete"
-                          : started
-                            ? "In progress"
-                            : "Not started"}
+                        {isTutorCompleted ? (
+                          <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
+                            Completed with a tutor
+                          </span>
+                        ) : finished ? (
+                          "Course complete"
+                        ) : started ? (
+                          "In progress"
+                        ) : (
+                          "Not started"
+                        )}
                       </span>
                       <span>
                         {completedCount} of {totalLessons} lessons

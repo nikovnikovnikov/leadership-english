@@ -1340,3 +1340,15 @@ FROM ranked r
 WHERE r.id = c.id AND c.sort_order = 0;
 
 CREATE INDEX IF NOT EXISTS courses_sort_order_idx ON public.courses (sort_order);
+
+DO $$ BEGIN
+CREATE POLICY "course_tutor_completions select"
+  ON public.course_tutor_completions FOR SELECT
+  USING (auth.role() = 'authenticated');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+CREATE POLICY "course_tutor_completions admin all"
+  ON public.course_tutor_completions FOR ALL
+  USING (public.is_admin()) WITH CHECK (public.is_admin());
+EXCEPTION WHEN duplicate_object THEN null; END $$;
