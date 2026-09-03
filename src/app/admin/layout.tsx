@@ -4,6 +4,7 @@ import { requireModerator, isAdminOnly } from "@/lib/auth";
 const ALL_TABS = [
   { href: "/admin", label: "Overview", adminOnly: false },
   { href: "/admin/analytics", label: "Analytics", adminOnly: true },
+  { href: "/admin/assessments", label: "Assessments", adminOnly: true },
   { href: "/admin/reports", label: "Reports", adminOnly: false },
   { href: "/admin/boards", label: "Boards", adminOnly: false },
   { href: "/admin/courses", label: "Courses", adminOnly: false },

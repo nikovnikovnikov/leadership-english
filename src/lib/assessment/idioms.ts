@@ -17,8 +17,9 @@ export type IdiomQuestion = {
 type Idiom = { idiom: string; meaning: string };
 
 // Community idiom list (deduplicated; "the ball is in your court" appears
-// twice in the source doc). Ordered by lesson.
-const IDIOMS: readonly Idiom[] = [
+// twice in the source doc). Ordered by lesson. Exported so the server-only
+// answer key and tests can verify correctness against the ground truth.
+export const IDIOM_MEANINGS: readonly Idiom[] = [
   // Lesson 1
   { idiom: "on thin ice", meaning: "in a risky or dangerous position" },
   { idiom: "turn a blind eye", meaning: "ignore something on purpose" },
@@ -114,27 +115,27 @@ const IDIOMS: readonly Idiom[] = [
 
 export const IDIOM_VERSION = "1.0";
 
-export const IDIOM_COUNT = IDIOMS.length;
+export const IDIOM_COUNT = IDIOM_MEANINGS.length;
 
 /** Deterministic option layout. A question's options hold the idiom's own
  * meaning plus the meanings of the following idioms in the list, so every
  * option is a real meaning from the set. The correct index is derived in the
  * server-only answer key by re-running this same construction. */
-export const IDIOM_QUESTIONS: readonly IdiomQuestion[] = IDIOMS.map((item, i) => {
+export const IDIOM_QUESTIONS: readonly IdiomQuestion[] = IDIOM_MEANINGS.map((item, i) => {
   const id = `idiom_${i}`;
   const optionKeys = getOptionKeys(i);
   return {
     id,
     idiom: item.idiom,
     stem: `What does “${item.idiom}” mean?`,
-    options: optionKeys.map((k) => IDIOMS[k].meaning) as [string, string, string, string],
+    options: optionKeys.map((k) => IDIOM_MEANINGS[k].meaning) as [string, string, string, string],
   };
 });
 
 /** Returns the 4 element indexes for a question's options, with the correct
  * answer placed at position (i % 4). */
 function getOptionKeys(i: number): number[] {
-  const n = IDIOMS.length;
+  const n = IDIOM_MEANINGS.length;
   const correct = i % 4;
   const keys: number[] = [];
   let cursor = 0;
