@@ -62,9 +62,17 @@ export async function createCourse(
 
   if (!title) return { error: "Title is required." };
 
+  const { data: orderMax } = await supabase
+    .from("courses")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const sortOrder = (orderMax?.sort_order ?? 0) + 1;
+
   const { data, error } = await supabase
     .from("courses")
-    .insert({ title, description, published })
+    .insert({ title, description, published, sort_order: sortOrder })
     .select("id")
     .single();
   if (error) return { error: safeDbError(error) };
@@ -106,34 +114,37 @@ export async function deleteCourse(id: string) {
   redirect("/admin/courses");
 }
 
-/** Swap a course with its neighbour in the admin-defined ordering. */
-export async function moveCourse(id: string, direction: "up" | "down") {
+/** Renumber the full admin-defined course ordering in one pass. */
+export async function reorderCourses(orderedIds: string[]) {
   const supabase = await requireAdminUser();
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("id, sort_order")
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: false });
-  if (!courses || courses.length < 2) return;
+  if (orderedIds.length < 2) return;
 
-  const index = courses.findIndex((c) => c.id === id);
-  const swapIndex = direction === "up" ? index - 1 : index + 1;
-  if (index < 0 || swapIndex < 0 || swapIndex >= courses.length) return;
-
-  const current = courses[index];
-  const neighbour = courses[swapIndex];
-  await supabase
-    .from("courses")
-    .update({ sort_order: neighbour.sort_order })
-    .eq("id", current.id);
-  await supabase
-    .from("courses")
-    .update({ sort_order: current.sort_order })
-    .eq("id", neighbour.id);
+  for (let i = 0; i < orderedIds.length; i++) {
+    await supabase
+      .from("courses")
+      .update({ sort_order: i + 1 })
+      .eq("id", orderedIds[i]);
+  }
 
   revalidatePath("/admin/courses");
   revalidatePath("/courses");
-  revalidatePath("/learn");
+}
+
+/** Renumber the lesson ordering within a course in one pass. */
+export async function reorderLessons(courseId: string, orderedIds: string[]) {
+  const supabase = await requireAdminUser();
+  if (orderedIds.length < 2) return;
+
+  for (let i = 0; i < orderedIds.length; i++) {
+    await supabase
+      .from("lessons")
+      .update({ order_index: i + 1 })
+      .eq("course_id", courseId)
+      .eq("id", orderedIds[i]);
+  }
+
+  revalidatePath(`/admin/course/${courseId}`);
+  revalidatePath(`/course/${courseId}`);
 }
 
 /** Record that a member completed a course with a tutor (public credential). */
@@ -183,13 +194,22 @@ export async function createLesson(
 
   if (!title) return { error: "Title is required." };
 
+  const { data: orderMax } = await supabase
+    .from("lessons")
+    .select("order_index")
+    .eq("course_id", courseId)
+    .order("order_index", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const effectiveOrder = orderIndex || (orderMax?.order_index ?? 0) + 1;
+
   const { error } = await supabase.from("lessons").insert({
     course_id: courseId,
     title,
     description,
     video_url: videoUrl,
     notion_page_id: notionPageId,
-    order_index: orderIndex,
+    order_index: effectiveOrder,
     published,
   });
   if (error) return { error: safeDbError(error) };

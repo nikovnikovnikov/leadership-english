@@ -5,9 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { CourseForm } from "@/components/admin/course-form";
 import { LessonForm } from "@/components/admin/lesson-form";
 import { DeleteButton } from "@/components/delete-button";
+import { AdminLessonOrderList } from "../lesson-order-list";
 import { TutorCompletionManager, type RecordedMember } from "@/components/admin/tutor-completion-manager";
 import { getTutorCompletionsForCourse } from "@/lib/queries";
-import { deleteCourse, deleteLesson } from "@/actions/admin";
+import { deleteCourse } from "@/actions/admin";
 
 export const metadata = { title: "Manage course" };
 
@@ -73,33 +74,9 @@ export default async function AdminCoursePage({
         </div>
 
         <div className="space-y-2">
-          {lessons?.map((lesson) => (
-            <div
-              key={lesson.id}
-              className="flex items-center justify-between rounded-xl border border-stone-200 bg-white p-3 shadow-sm"
-            >
-              <Link
-                href={`/admin/lesson/${lesson.id}`}
-                className="flex min-w-0 items-center gap-3"
-              >
-                <span className="w-6 text-center text-xs text-stone-400">
-                  {lesson.order_index}
-                </span>
-                <span className="truncate text-sm font-medium hover:text-[var(--primary)]">
-                  {lesson.title}
-                </span>
-                {!lesson.published && (
-                  <span className="shrink-0 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-500">
-                    Draft
-                  </span>
-                )}
-              </Link>
-              <DeleteButton
-                action={deleteLesson.bind(null, lesson.id, course.id)}
-              />
-            </div>
-          ))}
-          {!lessons?.length && (
+          {lessons?.length ? (
+            <AdminLessonOrderList courseId={course.id} lessons={lessons} />
+          ) : (
             <p className="text-sm text-stone-400">
               No lessons yet — add the first one below.
             </p>
