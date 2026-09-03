@@ -52,7 +52,7 @@ export default async function CoursesPage() {
             return (
               <Link
                 key={course.id}
-                href={nextLesson ? `/lesson/${nextLesson.id}` : `/course/${course.id}`}
+                href={`/course/${course.id}`}
                 className="group rounded-2xl border border-stone-200 bg-white p-5 shadow-sm transition dark:border-stone-800 dark:bg-stone-900 hover:border-[var(--primary)] hover:shadow"
               >
                 <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-100 group-hover:text-[var(--primary)] dark:group-hover:brightness-110">
