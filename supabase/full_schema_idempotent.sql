@@ -1300,7 +1300,13 @@ EXCEPTION WHEN duplicate_object THEN null; END $$;
 alter table profiles add column if not exists assessment_skipped_at timestamptz;
 
 create or replace function public.record_assessment(
-  p_version text, p_score_raw int, p_score_scaled int, p_band text, p_skill_scores jsonb, p_answers jsonb
+  p_assessment_type text,
+  p_version text,
+  p_score_raw int,
+  p_score_scaled int,
+  p_band text default null,
+  p_skill_scores jsonb default '{}'::jsonb,
+  p_answers jsonb default '{}'::jsonb
 ) returns text language plpgsql security definer set search_path = public
 as $$
 declare
@@ -1308,20 +1314,40 @@ declare
   v_tag_id uuid;
 begin
   if v_user_id is null then raise exception 'not authenticated'; end if;
-  if p_band not in ('A1','A2','B1','B2','C1','C2') then raise exception 'invalid band'; end if;
-  insert into user_assessments (user_id, version, score_raw, score_scaled, band, skill_scores, answers)
-  values (v_user_id, p_version, p_score_raw, p_score_scaled, p_band, p_skill_scores, p_answers);
-  insert into tags (name, visibility)
-  values ('CEFR ' || p_band, 'admin')
-  on conflict (name) do update set name = excluded.name
-  returning id into v_tag_id;
-  delete from profile_tags
-  where profile_id = v_user_id
-    and tag_id in (select id from tags where name like 'CEFR %');
-  insert into profile_tags (profile_id, tag_id, assigned_by)
-  values (v_user_id, v_tag_id, v_user_id)
-  on conflict (profile_id, tag_id) do nothing;
-  return p_band;
+
+  if p_assessment_type = 'placement' then
+    if p_band is null or p_band not in ('A1','A2','B1','B2','C1','C2') then
+      raise exception 'placement requires a valid CEFR band';
+    end if;
+  elsif p_assessment_type = 'idioms' then
+    if p_band is not null then
+      raise exception 'idioms assessment does not carry a CEFR band';
+    end if;
+  else
+    raise exception 'unknown assessment type';
+  end if;
+
+  insert into user_assessments
+    (user_id, assessment_type, version, score_raw, score_scaled, band, skill_scores, answers)
+  values
+    (v_user_id, p_assessment_type, p_version, p_score_raw, p_score_scaled, p_band, p_skill_scores, p_answers);
+
+  if p_assessment_type = 'placement' then
+    insert into tags (name, visibility)
+    values ('CEFR ' || p_band, 'admin')
+    on conflict (name) do update set name = excluded.name
+    returning id into v_tag_id;
+
+    delete from profile_tags
+    where profile_id = v_user_id
+      and tag_id in (select id from tags where name like 'CEFR %');
+
+    insert into profile_tags (profile_id, tag_id, assigned_by)
+    values (v_user_id, v_tag_id, v_user_id)
+    on conflict (profile_id, tag_id) do nothing;
+  end if;
+
+  return p_assessment_type;
 end;
 $$;
 -- ---------------------------------------------------------------------------
@@ -1352,3 +1378,17 @@ CREATE POLICY "course_tutor_completions admin all"
   ON public.course_tutor_completions FOR ALL
   USING (public.is_admin()) WITH CHECK (public.is_admin());
 EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- ---------------------------------------------------------------------------
+-- 0026: Multi-assessment support (assessment_type on user_assessments)
+-- ---------------------------------------------------------------------------
+
+ALTER TABLE public.user_assessments
+  ADD COLUMN IF NOT EXISTS assessment_type text NOT NULL DEFAULT 'placement';
+
+ALTER TABLE public.user_assessments ALTER COLUMN band DROP NOT NULL;
+ALTER TABLE public.user_assessments DROP CONSTRAINT IF EXISTS user_assessments_band_check;
+
+CREATE INDEX IF NOT EXISTS idx_user_assessments_type_user
+  ON user_assessments(assessment_type, user_id, taken_at DESC);
+

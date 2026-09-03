@@ -21,6 +21,7 @@ export default async function AssessmentPage({
     .from("user_assessments")
     .select("band, score_raw, score_scaled, skill_scores, taken_at")
     .eq("user_id", profile.id)
+    .eq("assessment_type", "placement")
     .order("taken_at", { ascending: false })
     .limit(1)
     .maybeSingle();

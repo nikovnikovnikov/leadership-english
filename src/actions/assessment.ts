@@ -34,6 +34,7 @@ export async function submitAssessment(
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("record_assessment", {
+    p_assessment_type: "placement",
     p_version: QUESTION_VERSION,
     p_score_raw: result.raw,
     p_score_scaled: result.scaled,
