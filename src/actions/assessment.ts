@@ -51,6 +51,7 @@ export async function submitAssessment(
 
   revalidatePath("/learn");
   revalidatePath("/assessment");
+  revalidatePath("/assessments");
   revalidatePath("/admin/members");
 
   return { result };
