@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AssessmentClient } from "@/components/assessment/assessment-client";
@@ -27,9 +26,6 @@ export default async function AssessmentPage({
     .maybeSingle();
 
   const alreadyAssessed = Boolean(latest);
-
-  // Admins are not gated; they may take it deliberately via ?take=1.
-  if (profile.role === "admin" && !start) redirect("/learn");
 
   // First time (or a fresh attempt): run the test itself.
   if (start || !latest) {

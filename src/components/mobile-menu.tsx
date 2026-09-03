@@ -72,11 +72,9 @@ export function MobileMenu({
 
   if (!open) return null;
 
-  const links: ReadonlyArray<{ href: string; label: string }> = (
-    chatEnabled
-      ? [...NAV_LINKS.slice(0, 2), CHAT_LINK, ...NAV_LINKS.slice(2)]
-      : [...NAV_LINKS]
-  ).filter((link) => !(link.href === "/assessments" && profile.role === "admin"));
+  const links: ReadonlyArray<{ href: string; label: string }> = chatEnabled
+    ? [...NAV_LINKS.slice(0, 2), CHAT_LINK, ...NAV_LINKS.slice(2)]
+    : [...NAV_LINKS];
 
   return (
     <div className="fixed inset-0 z-50">

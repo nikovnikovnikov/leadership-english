@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
@@ -8,7 +7,6 @@ export const dynamic = "force-dynamic";
 
 export default async function AssessmentsPage() {
   const profile = await requireUser();
-  if (profile.role === "admin") redirect("/learn");
 
   const supabase = await createClient();
   const [{ data: placement }, { data: idioms }] = await Promise.all([
